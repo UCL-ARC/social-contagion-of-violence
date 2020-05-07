@@ -8,19 +8,23 @@ matplotlib.use('module://backend_interagg')
 ##############################################################################
 # Parameters
 
-run_time = 300
+run_time = 1000
 decays = 7
-baseline = 0.001
-contagion = 0.05
-n_realizations = 5
-n_nodes = 100  # 1000 ~ 10 sec, 2000 ~ 50 sec
-self_contagion = True
+baseline = 0.0005
+contagion = 0.000
+n_realizations = 20
+n_nodes = 1000  # 1000 ~ 10 sec, 2000 ~ 50 sec
+self_contagion = False
 
 ##############################################################################
 # Graph
 
 g = nx.barabasi_albert_graph(n_nodes, 2, seed=20)
 adjacency = nx.to_numpy_array(g)
+
+# adjacency = np.eye(n_nodes,k=1) + np.eye(n_nodes,k=-1)
+# g = nx.from_numpy_array(adjacency)
+
 plt.hist(np.average(adjacency,0)*n_nodes,100)
 plt.show()
 
@@ -39,29 +43,42 @@ plot_graph(g)
 ##############################################################################
 # Estimates
 
-def estimate_counts(adj):
-    nn1 = sum(sum(adj))
-    nn2 = sum(sum(np.linalg.matrix_power(adj, 2)))
-    nn3 = sum(sum(np.linalg.matrix_power(adj, 3)))
+def estimate_counts(adj, baseline, run_time, contagion, nn=3):
     ratio = contagion / (1 - contagion)
-    infections = baseline * run_time * (n_nodes + nn1*ratio + nn2*ratio*ratio + nn3*ratio*ratio*ratio)
+
+    def nn_contribution(nn):
+        nnx = [sum(sum(np.linalg.matrix_power(adj, i))) * np.power(ratio, i) for i in range(1,nn+1)]
+        return sum(nnx)
+
+    infections = baseline * run_time * (n_nodes + nn_contribution(nn))
     print(f'Estimated base infections = {round(baseline * run_time * n_nodes)}')
     print(f'Estimated infections = {round(infections)}')
-    print(f'Estimated infections with self-infection = {round(infections*(1+ratio))}')
+    print(f'Estimated infections with self-infection = {round(infections * (1 + ratio))}')
 
-estimate_counts(adjacency)
+estimate_counts(adjacency, baseline, run_time, contagion, nn=20)
 
 ##############################################################################
-# Simulate
+# Simulate contagion
 
 self_contagion_matrix = np.eye(n_nodes) if self_contagion else np.zeros((n_nodes, n_nodes))
-hawkes = SimuHawkesExpKernels(adjacency=contagion * (adjacency + self_contagion_matrix),
-                              decays=decays,
-                              baseline=baseline * np.ones(n_nodes),
-                              # seed=seed,
-                              end_time=run_time,
-                              verbose=True, )
-# hawkes.simulate()
-multi = SimuHawkesMulti(hawkes, n_realizations)
-multi.simulate()
-print(f'Actual infections = {round(np.average(multi.n_total_jumps))}')
+all_timestamps = []
+n_total_jumps = []
+for i in range (n_realizations):
+    hawkes = SimuHawkesExpKernels(adjacency=contagion * (adjacency + self_contagion_matrix),
+                                  decays=decays,
+                                  baseline=baseline * np.ones(n_nodes),
+                                  # seed=seed,
+                                  end_time=run_time,
+                                  verbose=True, )
+    hawkes.simulate()
+    n_total_jumps.append(hawkes.n_total_jumps)
+    all_timestamps.append(hawkes.timestamps)
+
+print(f'Actual average infections = {round(np.average(n_total_jumps))}')
+print(f'Actual std infections = {round(np.std(n_total_jumps))}')
+plt.hist(n_total_jumps)
+plt.show()
+
+# There is a multi-threaded solution but it's slower:
+# multi = SimuHawkesMulti(hawkes, n_realizations, n_threads=0)
+# multi.simulate()
