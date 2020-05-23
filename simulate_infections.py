@@ -30,12 +30,25 @@ def plot_common(fig, show=True, filename=None, params_dict=None, directory='resu
         fig.show()
 
 
-def plot_graph(g, min_edges=3, show=True, filename=None, params_dict=None, directory='results'):
+def _graph(graph_or_adj):
+    if isinstance(graph_or_adj, nx.Graph):
+        return graph_or_adj
+    elif isinstance(graph_or_adj, np.ndarray):
+        return nx.from_numpy_array(graph_or_adj)
+    elif isinstance(graph_or_adj, list):
+        return nx.from_numpy_array(np.array(graph_or_adj))
+    else:
+        raise Exception
+
+
+def plot_network(graph_or_adj, min_edges=3, show=True, filename=None, params_dict=None, directory='results'):
+    g = _graph(graph_or_adj)
     fig = plt.figure(figsize=(8, 5))
     gs = fig.add_gridspec(1, 3)
     ax1 = fig.add_subplot(gs[0, 0:-1])
     ax2 = fig.add_subplot(gs[0, 2])
 
+    # plot1
     pos = nx.spring_layout(g)
     nx.draw_networkx_nodes(g, pos, node_size=10, alpha=0.4, ax=ax1, )
     nx.draw_networkx_edges(g, pos, alpha=0.4, ax=ax1)
@@ -44,6 +57,7 @@ def plot_graph(g, min_edges=3, show=True, filename=None, params_dict=None, direc
     ax1.set_title(f'Network Diagram')
     ax1.axis('off')
 
+    # plot2
     ax2.hist(dict(g.degree).values())
     ax2.set_title('Degree Histogram')
     ax2.set_xlabel(f'Degrees')
@@ -53,14 +67,14 @@ def plot_graph(g, min_edges=3, show=True, filename=None, params_dict=None, direc
     return fig, pos
 
 
-def estimate_event_counts(G, base, end_time, alpha, nodes, nn=3):
+def estimate_event_counts(adj, base, end_time, alpha, nn=3):
     ratio = alpha / (1 - alpha)
-    adj = nx.to_numpy_array(G)
-    nnx = [sum(sum(np.linalg.matrix_power(adj, i))) * np.power(ratio, i) for i in range(1, nn + 1)]
-    infections = base * end_time * (nodes + sum(nnx))
-    print(f'Estimated base infections = {round(base * end_time * nodes)}')
-    print(f'Estimated infections = {round(infections)}')
-    print(f'Estimated infections with self-infection = {round(infections * (1 + ratio))}')
+    nnx = [sum(sum(np.linalg.matrix_power(adj * ratio, i))) for i in range(1, nn + 1)]
+    infections = base * end_time * (len(adj) + sum(nnx))
+    contagions = base * end_time * sum(nnx)
+    print(f'Estimated total infections = {round(infections)}')
+    print(f'Estimated contagious infections = {round(contagions)}')
+    return infections, contagions
 
 
 def repeat_simulations(simulation, n_simulations):
@@ -90,14 +104,17 @@ def plot_simulations(multi_timestamps, show=True, filename=None, params_dict=Non
     return fig
 
 
-def set_homophily(timestamps, g):
+def set_homophily(timestamps, g, node_list=None):
     node_attribute = dict()
-    for node, node_timestamps in enumerate(timestamps):
+    if node_list is None:
+        node_list = range(len(timestamps))
+    for node, node_timestamps in zip(node_list, timestamps):
         node_attribute[node] = 1 if len(node_timestamps) == 0 else 2
     nx.set_node_attributes(g, node_attribute, 'feature')
 
 
-def plot_homophily_network(g, pos=None, show=True, filename=None, params_dict=None, directory='results'):
+def plot_homophily_network(graph_or_adj, pos=None, show=True, filename=None, params_dict=None, directory='results'):
+    g = _graph(graph_or_adj)
     fig = plt.figure(figsize=(8, 5))
     gs = fig.add_gridspec(1, 3)
     ax1 = fig.add_subplot(gs[0, 0:-1])
@@ -121,15 +138,19 @@ def plot_homophily_network(g, pos=None, show=True, filename=None, params_dict=No
     return fig, pos
 
 
-def plot_homophily_variation(multi_timestamps, g, show=True, filename=None, params_dict=None, directory='results'):
-    fig, ax = plt.subplots(2, 2, figsize=(8, 5))
-
+def repeat_set_homophily(multi_timestamps, g):
     homophily_dist = []
     homophily_mixing = []
     for timestamps in multi_timestamps:
         set_homophily(timestamps, g)
         homophily_dist.append(nx.numeric_assortativity_coefficient(g, 'feature'))
         homophily_mixing.append(nx.attribute_mixing_dict(g, 'feature'))
+    return homophily_dist, homophily_mixing
+
+
+def plot_homophily_variation(multi_timestamps, g, show=True, filename=None, params_dict=None, directory='results'):
+    homophily_dist, homophily_mixing = repeat_set_homophily(multi_timestamps, g)
+    fig, ax = plt.subplots(2, 2, figsize=(8, 5))
 
     ax[0, 0].hist(homophily_dist)
     ax[0, 0].set_title(f'Assortativity coefficient', fontsize=10)
