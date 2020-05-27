@@ -1,5 +1,5 @@
 import numpy as np
-import shuffle as st
+import src.shuffle as st
 import pytest
 
 data_diff_all = [([1], [2], [1]),
@@ -40,8 +40,8 @@ def test_diff_neighbours_self_excitation(timestamps, expected):
 def test_group_timestamps_by_node():
     timestamps = np.array([1, 2, 1])
     timestamps_nodes = np.array(['a', 'c', 'a'])
-    node_list = ['c','b','a']
-    expected = [np.array([2]), np.array([]), np.array([1,1])]
+    node_list = ['c', 'b', 'a']
+    expected = [np.array([2]), np.array([]), np.array([1, 1])]
     actual = st.group_timestamps_by_node(timestamps, timestamps_nodes, node_list)
     for i, j in zip(expected, actual):
         np.testing.assert_array_almost_equal(i, j)

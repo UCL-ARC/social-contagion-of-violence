@@ -3,7 +3,7 @@ from itertools import combinations
 import networkx as nx
 import matplotlib.pyplot as plt
 
-import simulate_infections as si
+import src.common as co
 
 
 def diff_vectors(v1, v2):
@@ -21,7 +21,7 @@ def diff_vector(v):
 
 
 def diff_neighbours(graph_or_adj, timestamps, ):
-    g = si._graph(graph_or_adj)
+    g = co.to_graph(graph_or_adj)
     diffs = []
     for n1, n2 in g.edges:
         if n1 == n2:
@@ -48,12 +48,12 @@ def shuffle_timestamps(timestamps, seed=None):
     return t
 
 
-def repeat_shuffle_diff(adj, timestamps, repetitions, seed=None, verbose=False):
+def repeat_shuffle_diff(adj, timestamps, shuffles, seed=None, verbose=False):
     # timestamps is a list of np.arrays representing timestamps at a node
     # all nodes must be present in the list
     # a node with zero timestamps is represented by an empty np.array
     shuffled_diffs = []
-    for repetition in range(repetitions):
+    for repetition in range(shuffles):
         t = shuffle_timestamps(timestamps, seed=seed)
         shuffled_diffs.append(diff_neighbours(adj, t))
         if seed is not None:
@@ -64,22 +64,34 @@ def repeat_shuffle_diff(adj, timestamps, repetitions, seed=None, verbose=False):
     return shuffled_diffs
 
 
-def plot_diff_comparison(timestamps, shuffled_diffs, show=True, filename=None, params_dict=None, directory='results'):
+def percentage_diff(ts_diffs, shuffled_diffs):
+    exp = np.average([np.average(shuffled_diff) for shuffled_diff in shuffled_diffs])
+    if not exp == 0:
+        return np.abs(np.average(ts_diffs) - exp) * 100 / exp
+
+
+def plot_diff_comparison(ts_diffs, shuffled_diffs, show=True, filename=None, params_dict=None, directory='results'):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
 
-    ax1.hist(timestamps, alpha=0.5)
-    ax1.hist(shuffled_diffs[0], alpha=0.5)
+    ax1.hist(ts_diffs, alpha=0.4, label='actual')
+    ax1.hist(shuffled_diffs[0], alpha=0.4, label='shuffled')
+    ax1.legend()
     ax1.set_title('Histogram of timestamp differences')
     ax1.set_xlabel(f'Timestamp difference')
     ax1.set_ylabel('Frequency')
 
-    ax2.hist([np.average(shuffled_diff) for shuffled_diff in shuffled_diffs])
-    ax2.axvline(x=np.average(timestamps), linewidth=2, color='r')
+    avg_shuffled_diffs = [np.average(shuffled_diff) for shuffled_diff in shuffled_diffs]
+    ax2.hist(avg_shuffled_diffs, label='shuffled')
+    co.plot_mean_median(ax2, avg_shuffled_diffs)
+    ax2.axvline(x=np.average(ts_diffs), linewidth=2, color='black',
+                label=f'actual: {co.round_to_n(np.average(ts_diffs), 3)}')
+    plt.plot([], [], ' ', label=f'%diff: {co.round_to_n(percentage_diff(ts_diffs,shuffled_diffs),3)}')
+    ax2.legend()
     ax2.set_title('Histogram of average timestamp differences')
     ax2.set_xlabel(f'Timestamp difference')
     ax2.set_ylabel('Frequency')
 
-    si.plot_common(fig, show, filename, params_dict, directory)
+    co.enhance_plot(fig, show, filename, params_dict, directory)
     return fig
 
 
