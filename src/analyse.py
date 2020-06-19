@@ -13,7 +13,7 @@ def plot_network(graph_or_adj, min_edges=3, show=True, filename=None, params_dic
     ax1 = fig.add_subplot(gs[0, 0:-1])
     ax2 = fig.add_subplot(gs[0, 2])
 
-    # plot1
+    # plot network
     pos = nx.spring_layout(g)
     nx.draw_networkx_nodes(g, pos, node_size=10, alpha=0.4, ax=ax1, )
     nx.draw_networkx_edges(g, pos, alpha=0.4, ax=ax1)
@@ -22,34 +22,38 @@ def plot_network(graph_or_adj, min_edges=3, show=True, filename=None, params_dic
     ax1.set_title(f'Network Diagram')
     ax1.axis('off')
 
-    # plot2
-    ax2.hist(dict(g.degree).values())
-    ax2.set_title('Degree Histogram')
-    ax2.set_xlabel(f'Degrees')
-    ax2.set_ylabel('Frequency')
+    # plot degree rank
+    degree_sequence = sorted([d for n, d in g.degree()], reverse=True)
+    ax2.plot(degree_sequence, marker='.')
+    ax2.set_title('Degree rank plot')
+    ax2.set_xlabel(f'rank')
+    ax2.set_ylabel('degree')
 
     co.enhance_plot(fig, show, filename, params_dict, directory)
     return fig, pos
 
 
-def plot_timestamps(timestamps, show=True, filename=None, params_dict=None, directory='results'):
+def plot_timestamps(timestamps, show=True, filename=None, params_dict=None, directory='results',
+                    ax1_kw=None, ax2_kw=None):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
+    if ax1_kw is None: ax1_kw = {}
+    if ax2_kw is None: ax2_kw = {}
 
-    ax1.hist(np.concatenate(timestamps))
-    ax1.set_title('Histogram of events')
+    ax1.hist(np.concatenate(timestamps), **ax1_kw)
+    ax1.set_title('Histogram of event timestamp')
     ax1.set_xlabel(f'Time')
     ax1.set_ylabel('Frequency')
 
     timestamps_count = [len(t) for t in timestamps]
-    ax2.hist(timestamps_count)
-    co.plot_mean_median(ax2,timestamps_count)
+    ax2.hist(timestamps_count, **ax2_kw)
+    co.plot_mean_median(ax2, timestamps_count)
     ax2.legend()
     ax2.set_title('Histogram of events per node')
     ax2.set_xlabel(f'Events per node')
     ax2.set_ylabel('Frequency')
 
     co.enhance_plot(fig, show, filename, params_dict, directory)
-    return
+    return fig
 
 
 def simple_fits(timestamps, decays, verbose=True):

@@ -42,5 +42,9 @@ def round_to_n(value, n):
 
 
 def plot_mean_median(ax, data):
-    ax.axvline(x=np.average(data), linewidth=2, color='r', label=f'mean: {round_to_n(np.average(data), 3)}')
-    ax.axvline(x=np.median(data), linewidth=2, color='g', label=f'median: {round_to_n(np.median(data), 3)}')
+    ax.axvline(x=np.nanmean(data), linewidth=2, color='r', label=f'mean: {round_to_n(np.average(data), 3)}')
+    ax.axvline(x=np.nanmedian(data), linewidth=2, color='g', label=f'median: {round_to_n(np.median(data), 3)}')
+
+
+def group_sort_timestamps(timestamps, timestamps_nodes, node_list):
+    return [np.sort(timestamps[np.where(timestamps_nodes == node)]) for node in node_list]

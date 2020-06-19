@@ -12,7 +12,7 @@ import src.homophily as ho
 import src.common as co
 
 input_dir = 'input/copenhagen/'
-output_dir = co.set_directory('result/copenhagen/')
+output_dir = co.set_directory('analysis/results/copenhagen/')
 
 # Create Network
 fb_friends = pd.read_csv(input_dir + 'fb_friends.csv')
@@ -28,7 +28,7 @@ sms = pd.read_csv(input_dir + 'sms.csv')
 sms = sms[sms['to'].isin(nodes_list)]
 
 for df_name, df in {'calls': calls, 'sms': sms}.items():
-    timestamps = sh.group_timestamps_by_node(np.array(df['timestamp'] / 1000), np.array(df['to']), nodes_list)
+    timestamps = co.group_sort_timestamps(np.array(df['timestamp'] / 1000), np.array(df['to']), nodes_list)
     an.plot_timestamps(timestamps, filename=f'{df_name}_timestamps.png', directory=output_dir)
 
     # Simulation
@@ -40,7 +40,7 @@ for df_name, df in {'calls': calls, 'sms': sms}.items():
     comparison.simulate()
     an.plot_timestamps(comparison.timestamps, filename=f'{df_name}_simulated_timestamps.png', directory=output_dir)
 
-    # Homophily
+    # Calculate Homophily
     ho.set_homophily(timestamps, g, node_list=nodes_list)
     homophily = np.round(nx.numeric_assortativity_coefficient(g, 'feature'), 3)
     print(f'{df_name} homophily: {homophily}')
@@ -48,17 +48,12 @@ for df_name, df in {'calls': calls, 'sms': sms}.items():
     # Shuffle Test
     shuffles = 100
     adj_array = nx.to_numpy_array(g)
-    ts_diffs = sh.diff_neighbours(adj_array, timestamps)
-    ts_shuffled_diffs = sh.repeat_shuffle_diff(adj=adj_array, timestamps=timestamps,
-                                               shuffles=shuffles, seed=1, verbose=True)
-    sh.plot_diff_comparison(ts_diffs, ts_shuffled_diffs,
-                            params_dict={'shuffles':shuffles, 'self_excitation': True},
+    sh.plot_shuffle_test(adj=adj_array, timestamps=timestamps, shuffles=shuffles, seed=1, verbose=True,
+                            params_dict={'shuffles': shuffles, 'self_excitation': True},
                             filename=f'{df_name}_timestamps_diff.png', directory=output_dir)
 
+    # Shuffle Test with Self-excitation
     adj_array = nx.to_numpy_array(g) + np.eye(g.number_of_nodes())
-    ts_diffs = sh.diff_neighbours(adj_array, timestamps)
-    ts_shuffled_diffs = sh.repeat_shuffle_diff(adj=adj_array, timestamps=timestamps,
-                                               shuffles=shuffles, seed=1, verbose=True)
-    sh.plot_diff_comparison(ts_diffs, ts_shuffled_diffs,
-                            params_dict={'shuffles':shuffles, 'self_excitation': True},
+    sh.plot_shuffle_test(adj=adj_array, timestamps=timestamps, shuffles=shuffles, seed=1, verbose=True,
+                            params_dict={'shuffles': shuffles, 'self_excitation': True},
                             filename=f'{df_name}_timestamps_diff_self_excitation.png', directory=output_dir)
