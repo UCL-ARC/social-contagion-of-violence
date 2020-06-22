@@ -4,28 +4,15 @@ import matplotlib.pyplot as plt
 import src.common as co
 
 
-# g = nx.Graph()
-# g.add_nodes_from([0,1 ,3,2, ], size=1)
-# g.add_nodes_from([ 4], size=2)
-# g.add_edges_from([(0,1),  (4,0), (0,2), (0,3), ])
-# print(nx.numeric_assortativity_coefficient(g, 'size'))
-# print(nx.attribute_mixing_dict(g, 'size'))
-# print(nx.numeric_mixing_matrix(g,'size'))
-#
-# pos = nx.spring_layout(g)
-# # nx.draw(g, pos=pos, ax=ax1, node_size=20, alpha=0.2)
-# color_map = {1:'blue',2:'red'}
-# nx.draw_networkx_nodes(g, pos, node_size=20, node_color=[color_map[k] for i, k in g.nodes.data('size')])
-# nx.draw_networkx_edges(g, pos, alpha=0.4, )
-# nx.draw_networkx_labels(g,  pos=pos,  font_size=20)
-# plt.show()
-
-def set_homophily(timestamps, g, node_list=None):
+def set_homophily(timestamps, g, node_list=None, use_length=False):
     node_attribute = dict()
     if node_list is None:
         node_list = range(len(timestamps))
     for node, node_timestamps in zip(node_list, timestamps):
-        node_attribute[node] = 1 if len(node_timestamps) == 0 else 2
+        if use_length:
+            node_attribute[node] = len(node_timestamps)
+        else:
+            node_attribute[node] = 1 if len(node_timestamps) > 0 else 0
     nx.set_node_attributes(g, node_attribute, 'feature')
 
 
@@ -38,8 +25,7 @@ def plot_homophily_network(graph_or_adj, pos=None, show=True, filename=None, par
 
     if pos is None:
         pos = nx.spring_layout(g)
-    color_map = {1: 'blue', 2: 'red'}
-    node_color = [color_map[k] for i, k in g.nodes.data('feature')]
+    node_color = [k for i, k in g.nodes.data('feature')]
     nx.draw_networkx_nodes(g, pos, node_size=20, alpha=0.4, node_color=node_color, ax=ax1)
     nx.draw_networkx_edges(g, pos, alpha=0.4, ax=ax1)
     ax1.set_title(f'Network Diagram')
@@ -54,34 +40,25 @@ def plot_homophily_network(graph_or_adj, pos=None, show=True, filename=None, par
     return fig, pos
 
 
-def repeat_set_homophily(multi_timestamps, g):
-    homophily_dist = []
-    homophily_mixing = []
+def multi_assortativity(multi_timestamps, g, use_length=False):
+    numeric_assortativity = []
+    g_copy = g.copy()
     for timestamps in multi_timestamps:
-        set_homophily(timestamps, g)
-        homophily_dist.append(nx.numeric_assortativity_coefficient(g, 'feature'))
-        homophily_mixing.append(nx.attribute_mixing_dict(g, 'feature'))
-    return homophily_dist, homophily_mixing
+        set_homophily(timestamps, g_copy, use_length=use_length)
+        numeric_assortativity.append(nx.numeric_assortativity_coefficient(g_copy, 'feature'))
+    return numeric_assortativity
 
 
 def plot_homophily_variation(multi_timestamps, g, show=True, filename=None, params_dict=None, directory='results'):
-    homophily_dist, homophily_mixing = repeat_set_homophily(multi_timestamps, g)
-    fig, ax = plt.subplots(2, 2, figsize=(8, 5))
+    numeric_assortativity = multi_assortativity(multi_timestamps, g)
+    numeric_assortativity_use_length = multi_assortativity(multi_timestamps, g, use_length=True)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
 
-    ax[0, 0].hist(homophily_dist)
-    ax[0, 0].set_title(f'Assortativity coefficient', fontsize=10)
+    ax1.hist(numeric_assortativity)
+    ax1.set_title(f'Numeric Assortativity coefficient (event occurence)', fontsize=10)
 
-    ax[0, 1].hist([i.get(1, {}).get(2, 0) for i in homophily_mixing])
-    ax[0, 1].set_title(f'Edges between dissimilar nodes', fontsize=10)
+    ax2.hist(numeric_assortativity_use_length)
+    ax2.set_title(f'Numeric Assortativity coefficient (event count)', fontsize=10)
 
-    ax[1, 0].hist([i.get(1, {}).get(1, 0) for i in homophily_mixing])
-    ax[1, 0].set_title(f'Edges between resistant nodes', fontsize=10)
-
-    ax[1, 1].hist([i.get(2, {}).get(2, 0) for i in homophily_mixing])
-    ax[1, 1].set_title(f'Edges between susceptible nodes', fontsize=10)
-
-    fig.suptitle('Histogram of various assortativity measures', )
-    fig.tight_layout()
-    fig.subplots_adjust(top=0.85)
     co.enhance_plot(fig, show, filename, params_dict, directory)
     return fig

@@ -2,28 +2,46 @@ import numpy as np
 from itertools import combinations
 import networkx as nx
 import matplotlib.pyplot as plt
+import sys
 
 import src.common as co
 
 
 def diff_vectors(v1, v2, smallest=False):
-    # Note: Assumes that number of timestamps per node is small so no need to use faster algorithm
-    x = np.reshape(v1, (len(v1), 1))
-    y = np.reshape(v2, (len(v2), 1)).transpose()
-    z = np.absolute(y - x)
-    if z.size > 0:
-        if smallest:
-            return np.array([np.min(z)])
+    if len(v1) == 0 or len(v2) == 0:
+        return np.array([])
+    if smallest:
+        a,b = 0,0
+        result = sys.maxsize
+        while a<len(v1) and b<len(v2):
+            diff = abs(v1[a] - v2[b])
+            if  diff < result:
+                result = diff
+            if v1[a] < v2[b]:
+                a += 1
+            else:
+                b += 1
+        return np.array([result])
+    else:
+        x = np.reshape(v1, (len(v1), 1))
+        y = np.reshape(v2, (len(v2), 1)).transpose()
+        z = np.absolute(y - x)
         return np.concatenate(z)
-    return np.array([])
 
 
 def diff_vector(v, smallest=False):
-    # Note: Assumes that number of timestamps per node is small so no need to use faster algorithm
-    z = np.array([np.abs(n1 - n2) for n1, n2 in combinations(v, 2)])
-    if smallest and len(z) > 0:
-        return np.array([np.min(z)])
-    return z
+    if len(v) > 1:
+        if smallest:
+            # Find the min diff by comparing difference of all possible pairs in sorted array
+            diff = sys.maxsize
+            for i in range(len(v) - 1):
+                if v[i + 1] - v[i] < diff:
+                    diff = v[i + 1] - v[i]
+            return np.array([diff])
+        else:
+            # Note: very slow for nodes with large number of timestamps > 100
+            return np.array([np.abs(n1 - n2) for n1, n2 in combinations(v, 2)])
+    return np.array([])
 
 
 def diff_neighbours(graph_or_adj, timestamps, smallest=False):
