@@ -19,11 +19,11 @@ params = dict(
     runtime=8 * 365,  # simulation duration in days
     baseline=0.2,  # prob that node becomes randomly infected
     contagion=0.11,  # prob of triggering further infection (branching ratio)
-    self_contagion=False,  # whether people can reinfect themselves
+    self_contagion=True,  # whether people can reinfect themselves
     lifetime=125,  # average time between initial and triggered infection
-    n_nodes=1000,  # number of people
+    n_nodes=200,  # number of people
     n_realizations=5,  # how many times to repeat simulation
-    seed=3,  # 96
+    seed=0,
     shuffles=100,  # how many times to shuffle experiment
 )
 output_dir = co.set_directory('analysis/results/simulation/')
@@ -46,21 +46,15 @@ contagion_simu = SimuHawkesExpKernels(adjacency=params['contagion'] * adj_array,
                                       end_time=params['runtime'],
                                       verbose=True, )
 contagion_simu.simulate()
-ts = contagion_simu.timestamps
-an.plot_timestamps(ts, filename='contagion_timestamps.png', directory=output_dir)
-sh.plot_shuffle_test(adj_array, ts, params['shuffles'], seed=params['seed'], verbose=True,
+an.plot_timestamps(contagion_simu.timestamps, filename='contagion_timestamps.png', directory=output_dir)
+sh.plot_shuffle_test(adj_array, contagion_simu.timestamps, params['shuffles'], seed=params['seed'], verbose=True,
                      filename='contagion_shuffle_test.png', directory=output_dir)
-sh.plot_shuffle_test(adj_array, ts, params['shuffles'], smallest=True, seed=params['seed'],
+sh.plot_shuffle_test(adj_array, contagion_simu.timestamps, params['shuffles'], smallest=True, seed=params['seed'],
                      verbose=True, filename='contagion_shuffle_test_smallest', directory=output_dir)
 
 # Repeat simulation and investigate presence of homophily
+# NOTE There is a multi-threaded solution but it's slower on my environment
 contagion_timestamps = an.repeat_simulations(contagion_simu, params['n_realizations'])
-
-# There is a multi-threaded solution but it's slower on my environment:
-# multi = SimuHawkesMulti(contagion_simu, n_realizations, n_threads=0)
-# multi.simulate()
-# contagion_timestamps = multi.timestamps
-
 an.plot_multi_timestamps(contagion_timestamps, filename='contagion_multi_simulations.png', directory=output_dir)
 ho.plot_homophily_variation(contagion_timestamps, g, filename='contagion_assortativity_variation.png',
                             directory=output_dir)
@@ -71,15 +65,13 @@ ho.plot_homophily_variation(
 ########################################################################################################################
 # HOMOPHILY
 
-ho.set_homophily(ts, g, use_length=False)
-homophily = np.round(nx.numeric_assortativity_coefficient(g, 'feature'), 3)
-ho.plot_homophily_network(g, pos=pos, filename='network_homophily.png', directory=output_dir)
+ho.set_homophily_random(g, values=[2], base=1, max_nodes=int(params['n_nodes'] * 0.3), seed=params['seed'])
+ho.plot_homophily_network(g, pos=pos, filename='network_homophily', directory=output_dir)
+homophily_baselines = ho.norm_time_functions(g, params['runtime'], 0.3)
 
-homophily_matrix = np.array([k for i, k in g.nodes.data('feature')])
 homophily_simu = SimuHawkesExpKernels(adjacency=np.zeros((params['n_nodes'], params['n_nodes'])),
-                                      decays=1 / params['lifetime'],
-                                      baseline=homophily_matrix * 0.3 * params['n_nodes']
-                                               / (sum(homophily_matrix) * params['runtime']),
+                                      decays=0,
+                                      baseline=homophily_baselines,
                                       seed=params['seed'],
                                       end_time=params['runtime'],
                                       verbose=True, )
@@ -103,17 +95,15 @@ ho.plot_homophily_variation(
 # INHOMOGENEOUS
 
 t_values = np.array([0, params['lifetime'], params['runtime'] * 0.5, params['runtime'] * 0.5 + params['lifetime']])
-y_values = np.array([0.5 / params['lifetime'], 0, 0.5 / params['lifetime'], 0])*0.3
+y_values = np.array([0.5 / params['lifetime'], 0, 0.5 / params['lifetime'], 0]) * 0.3
 tf = TimeFunction((t_values, y_values), inter_mode=TimeFunction.InterConstRight)
-from tick.plot import plot_timefunction
-
-plot_timefunction(tf)
-baselines = [tf for i in range(params['n_nodes'])]
+ho.plot_time_functions(tf, filename='Timefunction_Inhomogeneous', directory=output_dir)
+inhomogeneous_baselines = [tf for i in range(params['n_nodes'])]
 
 inhomogeneous_simu = SimuHawkesExpKernels(adjacency=np.zeros([params['n_nodes'], params['n_nodes']]),
                                           decays=0,
                                           end_time=params['runtime'],
-                                          baseline=baselines,
+                                          baseline=inhomogeneous_baselines,
                                           seed=params['seed'],
                                           verbose=True)
 inhomogeneous_simu.simulate()
@@ -132,6 +122,37 @@ ho.plot_homophily_variation(inhomogeneous_timestamps, g, filename='inhomogeneous
 ho.plot_homophily_variation(
     [sh.shuffle_timestamps(t, shuffle_nodes=True, seed=params['seed']) for t in inhomogeneous_timestamps], g,
     filename='inhomogeneous_assortativity_variation_shuffled', directory=output_dir)
+
+########################################################################################################################
+# CONFOUNDING
+
+ho.set_homophily_random(g, max_nodes=int(params['n_nodes'] * 0.3), seed=params['seed'])
+ho.plot_homophily_network(g, pos=pos, filename='network_confounding', directory=output_dir)
+confounding_baselines = ho.peak_time_functions(g, params['runtime'], params['lifetime'],base=0.1)
+ho.plot_time_functions(confounding_baselines, filename='Timefunctions_counfounding', directory=output_dir)
+
+confounding_simu = SimuHawkesExpKernels(adjacency=np.zeros([params['n_nodes'], params['n_nodes']]),
+                                        decays=0,
+                                        end_time=params['runtime'],
+                                        baseline=confounding_baselines,
+                                        seed=params['seed'],
+                                        verbose=True)
+confounding_simu.simulate()
+an.plot_timestamps(confounding_simu.timestamps, filename='confounding_timestamps.png', directory=output_dir,
+                   ax1_kw=dict(bins=50))
+sh.plot_shuffle_test(adj_array, confounding_simu.timestamps, params['shuffles'], smallest=False, seed=params['seed'],
+                     verbose=True, filename='confounding_shuffle_test.png', directory=output_dir)
+sh.plot_shuffle_test(adj_array, confounding_simu.timestamps, params['shuffles'], smallest=True, seed=params['seed'],
+                     verbose=True, filename='confounding_shuffle_test_smallest.png', directory=output_dir)
+
+# Repeat simulation and investigate presence of homophily
+confounding_timestamps = an.repeat_simulations(confounding_simu, params['n_realizations'])
+an.plot_multi_timestamps(confounding_timestamps, filename='confounding_multi_simulations.png', directory=output_dir)
+ho.plot_homophily_variation(confounding_timestamps, g, filename='confounding_assortativity_variation.png',
+                            directory=output_dir)
+ho.plot_homophily_variation(
+    [sh.shuffle_timestamps(t, shuffle_nodes=True, seed=params['seed']) for t in confounding_timestamps], g,
+    filename='confounding_assortativity_variation_shuffled', directory=output_dir)
 
 ########################################################################################################################
 ## SAVE

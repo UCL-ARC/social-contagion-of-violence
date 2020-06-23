@@ -14,7 +14,7 @@ def set_directory(dir_name):
     return dir_name
 
 
-def enhance_plot(fig, show=True, filename=None, params_dict=None, dir_name='result'):
+def enhance_plot(fig, show=True, filename=None, params_dict=None, dir_name='analysis/results'):
     if params_dict is not None:
         params_string = dict_string(params_dict)
         fig.text(0.01, 0.01, f'Parameters: {params_string}', fontsize=10, wrap=True)

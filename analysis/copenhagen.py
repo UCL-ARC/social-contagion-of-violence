@@ -46,20 +46,20 @@ for df_name, df in {'calls': calls}.items():
                     timestamps[node].append(v[i + 1])
 
     an.plot_timestamps(timestamps, filename=f'{df_name}_timestamps.png', directory=output_dir)
-    ho.set_homophily(timestamps, g, node_list=nodes_list)
+    ho.set_homophily_timestamps(timestamps, g, node_list=nodes_list)
     homophily = np.round(nx.numeric_assortativity_coefficient(g, 'feature'), 3)
     print(f'{df_name} homophily based on event occurence: {homophily}')
-    ho.set_homophily(timestamps, g, node_list=nodes_list, use_length=True)
+    ho.set_homophily_timestamps(timestamps, g, node_list=nodes_list, use_length=True)
     homophily = np.round(nx.numeric_assortativity_coefficient(g, 'feature'), 3)
     print(f'{df_name} homophily based on event count: {homophily}')
 
     # Compare with timestamps shuffled along all nodes
     timestamps_shuffled = sh.shuffle_timestamps(timestamps, shuffle_nodes=True, seed=seed)
     an.plot_timestamps(timestamps_shuffled, filename=f'{df_name}_shuffled_timestamps.png', directory=output_dir)
-    ho.set_homophily(timestamps_shuffled, g, node_list=nodes_list)
+    ho.set_homophily_timestamps(timestamps_shuffled, g, node_list=nodes_list)
     homophily = np.round(nx.numeric_assortativity_coefficient(g, 'feature'), 3)
     print(f'{df_name} shuffled homophily based on event occurence: {homophily}')
-    ho.set_homophily(timestamps_shuffled, g, node_list=nodes_list, use_length=True)
+    ho.set_homophily_timestamps(timestamps_shuffled, g, node_list=nodes_list, use_length=True)
     homophily = np.round(nx.numeric_assortativity_coefficient(g, 'feature'), 3)
     print(f'{df_name} shuffled homophily based on event count: {homophily}')
 

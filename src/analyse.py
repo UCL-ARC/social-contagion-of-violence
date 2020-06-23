@@ -70,6 +70,11 @@ def simple_fits(timestamps, decays, verbose=True):
 
 
 def repeat_simulations(simulation, n_simulations):
+    # NOTE: There is a multi-threaded solution but it's slower on my environment
+    # multi = SimuHawkesMulti(contagion_simu, n_realizations, n_threads=0)
+    # multi.simulate()
+    # contagion_timestamps = multi.timestamps
+
     multi_timestamps = []
     for i in range(n_simulations):
         simulation.reset()
