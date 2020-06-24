@@ -1,6 +1,7 @@
 import numpy as np
 import src.shuffle as st
 import pytest
+import networkx as nx
 
 data_diff_vectors = [
     ([1], [2], [1], [1]),
@@ -46,7 +47,7 @@ t0 = [[], [2], []]  # represents one event occurring at t=1 at node 1
 t1 = [[1], [2], []]  # represents two events occurring at t=1 at node 0 and t=2 at node 1
 t2 = [[1], [], [2]]  # represents two events occurring at t=1 at node 0 and t=2 at node 2
 t3 = [[1, 2], [], []]  # represents two events occurring at t=1 and t=2 at node 0
-t4 = [np.array([]), np.array([2, 3, 4, 5]), np.array([1, ])] # represents 4 events occurring at node1, 1 event at node2
+t4 = [np.array([]), np.array([2, 3, 4, 5]), np.array([1, ])]  # represents 4 events occurring at node1, 1 event at node2
 
 
 @pytest.mark.parametrize("timestamps,expected", [(t0, []), (t1, [1]), (t2, []), (t3, [])], ids=str)
@@ -83,6 +84,13 @@ def test_shuffle_timestamps_keep_nodes():
         np.testing.assert_array_equal(i, j)
 
 
+def test_shuffle_timestamps_node_list():
+    actual = st.shuffle_timestamps(t4, shuffle_nodes=[1,2], seed=1)
+    expected = [np.array([]), np.array([3, 4]), np.array([1,2,5])]
+    for i, j in zip(expected, actual):
+        np.testing.assert_array_equal(i, j)
+
+
 def test_repeat_shuffle_diff():
     actual = st.repeat_shuffle_diff(adj, t4, 3, shuffle_nodes=True, seed=10)
     expected = [np.array([2., 1., 3., 4.]), np.array([1., 3., 1., 1., 2., 4.]), np.array([1., 1., 2., 3.])]
@@ -93,5 +101,13 @@ def test_repeat_shuffle_diff():
 def test_repeat_shuffle_diff_keep_nodes():
     actual = st.repeat_shuffle_diff(adj, t4, 3, seed=1)
     expected = [np.array([4., 3., 2., 1.]), np.array([2., 1., 1., 2.]), np.array([1., 1., 2., 3.])]
+    for i, j in zip(expected, actual):
+        np.testing.assert_array_equal(i, j)
+
+
+def test_repeat_shuffle_diff_node_list():
+    actual = st.repeat_shuffle_diff(adj, t4, 3, shuffle_nodes=[1,2], seed=1)
+    print(actual)
+    expected = [np.array([2., 1., 2., 3., 2., 1.]), np.array([1., 2., 3., 4.]), np.array([2., 3., 4., 1., 2., 3.])]
     for i, j in zip(expected, actual):
         np.testing.assert_array_equal(i, j)

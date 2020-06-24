@@ -33,7 +33,7 @@ def plot_network(graph_or_adj, min_edges=3, show=True, filename=None, params_dic
     return fig, pos
 
 
-def plot_timestamps(timestamps, show=True, filename=None, params_dict=None, directory='results',
+def plot_timestamps(timestamps, node_list=None, show=True, filename=None, params_dict=None, directory='results',
                     ax1_kw=None, ax2_kw=None):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
     if ax1_kw is None: ax1_kw = {}
@@ -44,7 +44,10 @@ def plot_timestamps(timestamps, show=True, filename=None, params_dict=None, dire
     ax1.set_xlabel(f'Time')
     ax1.set_ylabel('Frequency')
 
-    timestamps_count = [len(t) for t in timestamps]
+    if node_list is not None:
+        timestamps_count = [len(timestamps[n]) for n in node_list]
+    else:
+        timestamps_count = [len(t) for t in timestamps]
     ax2.hist(timestamps_count, **ax2_kw)
     co.plot_mean_median(ax2, timestamps_count)
     ax2.legend()

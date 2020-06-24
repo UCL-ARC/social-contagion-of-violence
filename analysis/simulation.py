@@ -19,11 +19,11 @@ params = dict(
     runtime=8 * 365,  # simulation duration in days
     baseline=0.2,  # prob that node becomes randomly infected
     contagion=0.11,  # prob of triggering further infection (branching ratio)
-    self_contagion=True,  # whether people can reinfect themselves
+    self_contagion=False,  # whether people can reinfect themselves
     lifetime=125,  # average time between initial and triggered infection
     n_nodes=200,  # number of people
     n_realizations=5,  # how many times to repeat simulation
-    seed=0,
+    seed=3,
     shuffles=100,  # how many times to shuffle experiment
 )
 output_dir = co.set_directory('analysis/results/simulation/')
@@ -126,7 +126,7 @@ ho.plot_homophily_variation(
 ########################################################################################################################
 # CONFOUNDING
 
-ho.set_homophily_random(g, max_nodes=int(params['n_nodes'] * 0.3), seed=params['seed'])
+ho.set_homophily_random(g, max_nodes=int(params['n_nodes'] * 0.3), seed=1)
 ho.plot_homophily_network(g, pos=pos, filename='network_confounding', directory=output_dir)
 confounding_baselines = ho.peak_time_functions(g, params['runtime'], params['lifetime'],base=0.1)
 ho.plot_time_functions(confounding_baselines, filename='Timefunctions_counfounding', directory=output_dir)
@@ -158,13 +158,13 @@ ho.plot_homophily_variation(
 ## SAVE
 
 # Remote
-# mlflow.set_tracking_uri('databricks')
-# mlflow.set_experiment('/Users/soumaya.mauthoor.17@ucl.ac.uk/contagion_simulation')
+mlflow.set_tracking_uri('databricks')
+mlflow.set_experiment('/Users/soumaya.mauthoor.17@ucl.ac.uk/contagion_simulation')
 #
 # Locally
 # mlflow.set_tracking_uri('./mlruns')
 # mlflow.set_experiment('/simulation')
 #
-# with mlflow.start_run():
-#     mlflow.log_params(params)
-#     mlflow.log_artifacts(output_dir)
+with mlflow.start_run():
+    mlflow.log_params(params)
+    mlflow.log_artifacts(output_dir)

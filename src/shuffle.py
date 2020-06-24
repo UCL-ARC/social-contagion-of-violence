@@ -11,11 +11,11 @@ def diff_vectors(v1, v2, smallest=False):
     if len(v1) == 0 or len(v2) == 0:
         return np.array([])
     if smallest:
-        a,b = 0,0
+        a, b = 0, 0
         result = sys.maxsize
-        while a<len(v1) and b<len(v2):
+        while a < len(v1) and b < len(v2):
             diff = abs(v1[a] - v2[b])
-            if  diff < result:
+            if diff < result:
                 result = diff
             if v1[a] < v2[b]:
                 a += 1
@@ -44,6 +44,11 @@ def diff_vector(v, smallest=False):
     return np.array([])
 
 
+# def get_adjacency_edges(graph_or_adj):
+#     adj = co.to_adj(graph_or_adj)
+#     return np.array(np.where(np.triu(adj) == 1)).transpose()
+
+
 def diff_neighbours(graph_or_adj, timestamps, smallest=False):
     g = co.to_graph(graph_or_adj)
     diffs = []
@@ -63,10 +68,14 @@ def shuffle_timestamps(timestamps, shuffle_nodes=False, seed=None):
     timestamps_copy = np.concatenate(timestamps)
     rng = np.random.default_rng(seed)
     rng.shuffle(timestamps_copy)
-    if shuffle_nodes:
+    if shuffle_nodes is True:
         timestamps_nodes = rng.integers(nodes, size=len(timestamps_copy))
-    else:
+    elif isinstance(shuffle_nodes,list):
+        timestamps_nodes = rng.choice(shuffle_nodes,len(timestamps_copy))
+    elif shuffle_nodes is False:
         timestamps_nodes = np.concatenate([np.ones(len(j), dtype=int) * i for i, j in enumerate(timestamps)])
+    else:
+        raise TypeError("shuffle_nodes needs to be bool or list")
     t = co.group_sort_timestamps(timestamps_copy, timestamps_nodes, range(nodes))
     return t
 

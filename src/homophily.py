@@ -7,17 +7,13 @@ from tick.base import TimeFunction
 from tick.plot import plot_timefunction
 
 
-def set_homophily_timestamps(timestamps, g, node_list=None, use_length=False):
-    node_attribute = dict()
-    if node_list is None:
-        node_list = range(len(timestamps))
-    for node, node_timestamps in zip(node_list, timestamps):
+def set_feature_timestamps(g, timestamps, use_length=False):
+    for n in g.nodes:
         if use_length:
-            node_attribute[node] = len(node_timestamps)
+            g.nodes[n]['feature'] = len(timestamps[n])
         else:
-            node_attribute[node] = 1 if len(node_timestamps) > 0 else 0
-    nx.set_node_attributes(g, node_attribute, 'feature')
-    return node_attribute
+            g.nodes[n]['feature'] = 1 if len(timestamps[n]) > 0 else 0
+    return {i:k for i,k in g.nodes.data('feature')}
 
 
 def set_homophily_random(g, values=None, node_centers=None, max_nodes=None, base=-1, seed=None):
@@ -89,7 +85,7 @@ def multi_assortativity(multi_timestamps, g, use_length=False):
     numeric_assortativity = []
     g_copy = g.copy()
     for timestamps in multi_timestamps:
-        set_homophily_timestamps(timestamps, g_copy, use_length=use_length)
+        set_feature_timestamps(g_copy, timestamps, use_length=use_length)
         numeric_assortativity.append(nx.numeric_assortativity_coefficient(g_copy, 'feature'))
     return numeric_assortativity
 

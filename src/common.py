@@ -33,7 +33,21 @@ def to_graph(graph_or_adj):
     elif isinstance(graph_or_adj, list):
         return nx.from_numpy_array(np.array(graph_or_adj))
     else:
-        raise Exception
+        raise TypeError("graph_or_adj needs to be networkx graph, numpy array or list")
+
+
+def to_adj(graph_or_adj, self_excite=False):
+    if isinstance(graph_or_adj, nx.Graph):
+        adj = nx.to_numpy_array(graph_or_adj)
+    elif isinstance(graph_or_adj, np.ndarray):
+        adj = graph_or_adj
+    elif isinstance(graph_or_adj, list):
+        adj = np.array(graph_or_adj)
+    else:
+        raise TypeError("graph_or_adj needs to be networkx graph, numpy array or list")
+    if self_excite:
+        adj[np.where(np.eye(len(adj)))] = 1
+    return adj
 
 
 # round_to_n = lambda x, n: 0 if x==0 else round(x, -int(floor(log10(abs(x)))) + (n - 1))
