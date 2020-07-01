@@ -1,6 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
+from collections import Sequence
 
 import src.common as co
 from tick.base import TimeFunction
@@ -64,14 +65,14 @@ def peak_time_functions(g, runtime, duration, intensity=1, base=0):
 
 def plot_time_functions(tfs, show=True, filename=None, params_dict=None, directory='results'):
     fig, ax = plt.subplots(1, 1, figsize=(8, 5))
-    if not isinstance(tfs, list):
+    if not isinstance(tfs, (list,np.ndarray)):
         tfs = [tfs]
     for tf in tfs:
         if isinstance(tf, TimeFunction):
             plot_timefunction(tf, ax=ax, show=False)
             if len(tfs) > 3:
                 ax.get_legend().remove()
-    ax.set_title(f'Time functions)', fontsize=10)
+    ax.set_title(f'Time functions', fontsize=10)
     co.enhance_plot(fig, show, filename, params_dict, directory)
 
 
