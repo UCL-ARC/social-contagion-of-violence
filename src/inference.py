@@ -12,12 +12,16 @@ def _recursive(timestamps, beta, ):
 
 def _recursive_multi(timestamps, timestamps_neighbors, beta):
     r_array = np.zeros((len(timestamps), len(timestamps_neighbors)))
-    for k in range(1, len(timestamps)):
+    if len(timestamps) > 0:
         for n in range(len(timestamps_neighbors)):
-            tsn = np.where(np.logical_and(timestamps_neighbors[n] >= timestamps[k - 1],
-                                          timestamps_neighbors[n] < timestamps[k]))
-            r_array[k, n] = np.exp(-beta * (timestamps[k] - timestamps[k - 1])) * r_array[k - 1, n] + \
-                            np.sum(np.exp(-beta * (timestamps[k] - timestamps_neighbors[n][tsn])))
+            tsn = np.where(timestamps_neighbors[n] < timestamps[0])
+            r_array[0, n] = np.sum(np.exp(-beta * (timestamps[0] - timestamps_neighbors[n][tsn])))
+        for k in range(1, len(timestamps)):
+            for n in range(len(timestamps_neighbors)):
+                tsn = np.where(np.logical_and(timestamps_neighbors[n] >= timestamps[k - 1],
+                                              timestamps_neighbors[n] < timestamps[k]))
+                r_array[k, n] = np.exp(-beta * (timestamps[k] - timestamps[k - 1])) * r_array[k - 1, n] + \
+                                np.sum(np.exp(-beta * (timestamps[k] - timestamps_neighbors[n][tsn])))
     return r_array
 
 
