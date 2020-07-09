@@ -6,14 +6,14 @@ import src.homophily as ho
 timestamps = [np.array([1, 2]), np.array([]), np.array([1])]
 
 
-def test_set_homophily_timestamps():
+def test_set_feature_timestamps():
     g = nx.Graph()
     g.add_edges_from([(0, 1), (0, 2)])
     feature = ho.set_feature_timestamps(g, timestamps)
     assert feature == {0: 1, 1: 0, 2: 1}
 
 
-def test_set_homophily_timestamps_use_length():
+def test_set_feature_timestamps_use_length():
     g = nx.Graph()
     g.add_edges_from([(0, 1), (0, 2)])
     feature = ho.set_feature_timestamps(g, timestamps, use_length=True)
@@ -28,31 +28,31 @@ def test_peak_time_function():
     assert tf.value(2) == 0
 
 
-def test_set_homophily_random():
+def test_set_feature_clustered():
     g = nx.Graph()
     g.add_edges_from([(1, 0), (1, 2), (3, 4)])
-    feature = ho.set_homophily_random(g, node_centers=[1], )
+    feature = ho.set_feature_clustered(g, node_centers=[1], )
     assert feature == {1: 1, 0: 1, 2: 1, 3: -1, 4: -1}
 
 
-def test_set_homophily_random_max():
+def test_set_feature_clustered_max():
     g = nx.Graph()
     g.add_nodes_from(range(10))
-    feature = ho.set_homophily_random(g, max_nodes=5, seed=1)
+    feature = ho.set_feature_clustered(g, max_nodes=5, seed=1)
     assert feature == {0: 0, 1: -1, 2: 2, 3: 3, 4: -1, 5: -1, 6: 6, 7: -1, 8: 8, 9: -1}
 
 
-def test_set_homophily_random_max_neighbors():
+def test_set_feature_clustered_max_neighbors():
     g = nx.Graph()
     g.add_edges_from([(0, 1), (0, 2), (0, 3), (0, 4)])
-    feature = ho.set_homophily_random(g, max_nodes=3, node_centers=[0], seed=3)
-    assert feature == {0: 0, 1: -1, 2: 0, 3: -1, 4: 0}
+    feature = ho.set_feature_clustered(g, max_nodes=3, node_centers=[0], seed=3)
+    assert feature == {0: 0, 1: 0, 2: 0, 3: 0, 4: -1}
 
 
-def test_set_homophily_random_values():
+def test_set_feature_clustered_values():
     g = nx.Graph()
     g.add_edges_from([(1, 0), (1, 2), (3, 4)])
-    feature = ho.set_homophily_random(g, node_centers=[1], values=[10], base=0)
+    feature = ho.set_feature_clustered(g, node_centers=[1], values=[10], base=0)
     assert feature == {1: 10, 0: 10, 2: 10, 3: 0, 4: 0}
 
 

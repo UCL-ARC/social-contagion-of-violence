@@ -65,7 +65,7 @@ ho.plot_homophily_variation(
 ########################################################################################################################
 # HOMOPHILY
 
-ho.set_homophily_random(g, values=[2], base=1, max_nodes=int(params['n_nodes'] * 0.3), seed=params['seed'])
+ho.set_feature_clustered(g, values=[2], base=1, max_nodes=int(params['n_nodes'] * 0.3), seed=params['seed'])
 ho.plot_homophily_network(g, pos=pos, filename='network_homophily', directory=output_dir)
 homophily_baselines = ho.norm_time_functions(g, params['runtime'], 0.3)
 
@@ -126,7 +126,7 @@ ho.plot_homophily_variation(
 ########################################################################################################################
 # CONFOUNDING
 
-ho.set_homophily_random(g, max_nodes=int(params['n_nodes'] * 0.3), seed=1)
+ho.set_feature_clustered(g, max_nodes=int(params['n_nodes'] * 0.3), seed=1)
 ho.plot_homophily_network(g, pos=pos, filename='network_confounding', directory=output_dir)
 confounding_baselines = ho.peak_time_functions(g, params['runtime'], params['lifetime'],base=0.1)
 ho.plot_time_functions(confounding_baselines, filename='Timefunctions_counfounding', directory=output_dir)

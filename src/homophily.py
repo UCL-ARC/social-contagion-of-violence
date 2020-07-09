@@ -17,31 +17,31 @@ def set_feature_timestamps(g, timestamps, use_length=False):
     return {i:k for i,k in g.nodes.data('feature')}
 
 
-def set_homophily_random(g, values=None, node_centers=None, max_nodes=None, base=-1, seed=None):
-    node_count = 0
+def set_feature_clustered(g, values=None, node_centers=None, max_nodes=None, base=-1, seed=None):
+    node_list = []
     node_attribute = {i: base for i in g.nodes}
     if max_nodes is None:
         max_nodes = g.number_of_nodes()
     rng = np.random.default_rng(seed)
-    candidate_nodes = rng.choice(list(g.nodes), max_nodes, replace=False)
     if node_centers is None:
-        node_centers = candidate_nodes
+        node_centers = rng.choice(list(g.nodes), max_nodes, replace=False)
 
     for node in node_centers:
-        if values is None:
-            value = node
-        else:
-            value = rng.choice(values)
-        if node_count > max_nodes:
+        if len(node_list) > max_nodes:
             break
+        if node in node_list:
+            continue
+        value = node if values is None else rng.choice(values)
         node_attribute[node] = value
-        node_count += 1
+        node_list.append(node)
+
         for n in g.neighbors(node):
-            if n in candidate_nodes:
-                if node_count > max_nodes:
-                    break
-                node_attribute[n] = value
-                node_count += 1
+            if len(node_list) > max_nodes:
+                break
+            if n in node_list:
+                continue
+            node_attribute[n] = value
+            node_list.append(n)
 
     nx.set_node_attributes(g, node_attribute, 'feature')
     return node_attribute
