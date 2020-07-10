@@ -59,19 +59,6 @@ def plot_timestamps(timestamps, node_list=None, show=True, filename=None, params
     return fig
 
 
-def simple_fits(timestamps, decays, verbose=True):
-    timestamps_single = np.concatenate(timestamps)
-    timestamps_single.sort()
-    timestamps_list = list()
-    timestamps_list.append(timestamps_single)
-    learners = list()
-    for decay in decays:
-        learner = HawkesExpKern(decay, verbose=verbose)
-        learner.fit(timestamps_list)
-        learners.append(learner)
-    return learners
-
-
 def repeat_simulations(simulation, n_simulations):
     # NOTE: There is a multi-threaded solution but it's slower on my environment
     # multi = SimuHawkesMulti(contagion_simu, n_realizations, n_threads=0)
@@ -102,3 +89,22 @@ def plot_multi_timestamps(multi_timestamps, show=True, filename=None, params_dic
 
     co.enhance_plot(fig, show, filename, params_dict, directory)
     return fig
+
+
+def split_timestamps(timestamps, time):
+    timestamps_left = []
+    timestamps_right = []
+    for t in timestamps:
+        timestamps_left.append(t[np.where(t < time)])
+        timestamps_right.append(t[np.where(t >= time)])
+    return timestamps_left, timestamps_right
+
+
+def get_infected_nodes(timestamps, times):
+    infected_nodes = np.zeros([len(times), len(timestamps)])
+    for node, t in enumerate(timestamps):
+        for i, time in enumerate(times):
+            values = t[np.where(np.logical_and(t >= time, t < time + 1))]
+            if np.size(values) > 0:
+                infected_nodes[i, node] = 1
+    return infected_nodes

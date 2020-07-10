@@ -25,6 +25,9 @@ for l in range(len(timestamps)):
         ts = np.where(timestamps_neighbors[n] < timestamps[l])
         r_array_multi[l, n] = np.sum(np.exp(-beta * (timestamps[l] - timestamps_neighbors[n][ts])))
 
+g = nx.Graph()
+g.add_edges_from([(0, 1), (0, 2)])
+
 
 def test_recursive():
     np.testing.assert_array_equal(infer._recursive(timestamps, beta), r_array)
@@ -48,7 +51,22 @@ def test_loglikelihood_multi():
                + np.sum(np.log(mu + alpha * beta *
                                np.sum(infer._recursive_multi(timestamps_1, [timestamps], beta), 1)))
     # node 2 doesn't have contribution because doesn't have any timestamps
-    g = nx.Graph()
-    g.add_edges_from([(0, 1), (0, 2)])
+
     actual = infer.log_likelihood_multi(g, [timestamps, timestamps_1, timestamps_2], mu, alpha, beta, runtime)
     assert integral == actual
+
+
+def test_contagion_risk_time():
+    expected = np.array([[0, 0, 0], [1, 0, 0]])
+    actual = infer.contagion_risk(g, [timestamps, timestamps_1, timestamps_2], 2, beta, [0, 2]) / beta
+    np.testing.assert_array_equal(expected, actual)
+
+
+def test_get_highest_risk_nodes():
+    np.testing.assert_array_equal(infer.get_highest_risk_nodes(np.array([3, 1, 2, 5, 0]), 60),
+                                  np.array([1, 0, 1, 1, 0]))
+
+
+def test_get_highest_risk_nodes_same():
+    np.testing.assert_array_equal(infer.get_highest_risk_nodes(np.array([3, 1, 2, 5, 2]), 60),
+                                  np.array([1, 0, 1, 1, 1]))
