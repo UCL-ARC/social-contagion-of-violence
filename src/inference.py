@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 
 
 def _recursive(timestamps, beta, ):
@@ -110,7 +108,7 @@ def contagion_risk(g, timestamps, alpha, beta, times):
     for node in g.nodes:
         node_ts_neighbors = np.concatenate([timestamps[i] for i in g.neighbors(node)])
         for i, time in enumerate(times):
-            values = node_ts_neighbors[np.where(node_ts_neighbors < time)]
+            values = node_ts_neighbors[node_ts_neighbors < time]
             node_risk[i, node] = alpha * beta * np.sum(np.exp(-beta * (time - values)))
     return node_risk
 

@@ -42,7 +42,9 @@ def test_diff_vector_smallest(v, ignore, expected):
     np.testing.assert_array_equal(st.diff_vector(v, smallest=True), expected)
 
 
-adj = [[0, 1, 0], [1, 0, 1], [0, 1, 0]]  # represents a graph with two nodes where node 1 is connected to node 0 and 2
+adj = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
+g = nx.from_numpy_array(adj)   # represents a graph with two nodes where node 1 is connected to node 0 and 2
+g_excited = nx.from_numpy_array(adj+np.eye(3))
 t0 = [[], [2], []]  # represents one event occurring at t=1 at node 1
 t1 = [[1], [2], []]  # represents two events occurring at t=1 at node 0 and t=2 at node 1
 t2 = [[1], [], [2]]  # represents two events occurring at t=1 at node 0 and t=2 at node 2
@@ -52,22 +54,22 @@ t4 = [np.array([]), np.array([2, 3, 4, 5]), np.array([1, ])]  # represents 4 eve
 
 @pytest.mark.parametrize("timestamps,expected", [(t0, []), (t1, [1]), (t2, []), (t3, [])], ids=str)
 def test_diff_neighbours(timestamps, expected):
-    np.testing.assert_array_equal(st.diff_neighbours(adj, timestamps), np.array(expected))
+    np.testing.assert_array_equal(st.diff_neighbours(g, timestamps), np.array(expected))
 
 
 @pytest.mark.parametrize("timestamps,expected", [(t0, []), (t1, [1]), (t2, []), (t3, [])], ids=str)
 def test_diff_neighbours_smallest(timestamps, expected):
-    np.testing.assert_array_equal(st.diff_neighbours(adj, timestamps, smallest=True), np.array(expected))
+    np.testing.assert_array_equal(st.diff_neighbours(g, timestamps, smallest=True), np.array(expected))
 
 
 @pytest.mark.parametrize("timestamps,expected", [(t0, []), (t1, [1]), (t2, []), (t3, [1])], ids=str)
 def test_diff_neighbours_self_excitation(timestamps, expected):
-    np.testing.assert_array_equal(st.diff_neighbours(adj + np.eye(3), timestamps), np.array(expected))
+    np.testing.assert_array_equal(st.diff_neighbours(g_excited, timestamps), np.array(expected))
 
 
 @pytest.mark.parametrize("timestamps,expected", [(t0, []), (t1, [1]), (t2, []), (t3, [1])], ids=str)
 def test_diff_neighbours_self_excitation_smallest(timestamps, expected):
-    np.testing.assert_array_equal(st.diff_neighbours(adj + np.eye(3), timestamps, smallest=True), np.array(expected))
+    np.testing.assert_array_equal(st.diff_neighbours(g_excited, timestamps, smallest=True), np.array(expected))
 
 
 def test_shuffle_timestamps_shuffle_nodes():
@@ -92,21 +94,21 @@ def test_shuffle_timestamps_node_list():
 
 
 def test_repeat_shuffle_diff():
-    actual = st.repeat_shuffle_diff(adj, t4, 3, shuffle_nodes=True, seed=10)
+    actual = st.repeat_shuffle_diff(g, t4, 3, shuffle_nodes=True, seed=10)
     expected = [np.array([2., 1., 3., 4.]), np.array([1., 3., 1., 1., 2., 4.]), np.array([1., 1., 2., 3.])]
     for i, j in zip(expected, actual):
         np.testing.assert_array_equal(i, j)
 
 
 def test_repeat_shuffle_diff_keep_nodes():
-    actual = st.repeat_shuffle_diff(adj, t4, 3, seed=1)
+    actual = st.repeat_shuffle_diff(g, t4, 3, seed=1)
     expected = [np.array([4., 3., 2., 1.]), np.array([2., 1., 1., 2.]), np.array([1., 1., 2., 3.])]
     for i, j in zip(expected, actual):
         np.testing.assert_array_equal(i, j)
 
 
 def test_repeat_shuffle_diff_node_list():
-    actual = st.repeat_shuffle_diff(adj, t4, 3, shuffle_nodes=[1,2], seed=1)
+    actual = st.repeat_shuffle_diff(g, t4, 3, shuffle_nodes=[1,2], seed=1)
     print(actual)
     expected = [np.array([2., 1., 2., 3., 2., 1.]), np.array([1., 2., 3., 4.]), np.array([2., 3., 4., 1., 2., 3.])]
     for i, j in zip(expected, actual):

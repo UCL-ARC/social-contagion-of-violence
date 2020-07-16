@@ -1,10 +1,10 @@
 import numpy as np
 from itertools import combinations
-import networkx as nx
 import matplotlib.pyplot as plt
 import sys
 
-import src.common as co
+import src.utilities as ut
+import src.timestamps as ts
 
 
 def diff_vectors(v1, v2, smallest=False):
@@ -44,13 +44,7 @@ def diff_vector(v, smallest=False):
     return np.array([])
 
 
-# def get_adjacency_edges(graph_or_adj):
-#     adj = co.to_adj(graph_or_adj)
-#     return np.array(np.where(np.triu(adj) == 1)).transpose()
-
-
-def diff_neighbours(graph_or_adj, timestamps, smallest=False):
-    g = co.to_graph(graph_or_adj)
+def diff_neighbours(g, timestamps, smallest=False):
     diffs = []
     for n1, n2 in g.edges:
         if n1 == n2:
@@ -70,13 +64,13 @@ def shuffle_timestamps(timestamps, shuffle_nodes=False, seed=None):
     rng.shuffle(timestamps_copy)
     if shuffle_nodes is True:
         timestamps_nodes = rng.integers(nodes, size=len(timestamps_copy))
-    elif isinstance(shuffle_nodes,list):
-        timestamps_nodes = rng.choice(shuffle_nodes,len(timestamps_copy))
+    elif isinstance(shuffle_nodes, list):
+        timestamps_nodes = rng.choice(shuffle_nodes, len(timestamps_copy))
     elif shuffle_nodes is False:
         timestamps_nodes = np.concatenate([np.ones(len(j), dtype=int) * i for i, j in enumerate(timestamps)])
     else:
         raise TypeError("shuffle_nodes needs to be bool or list")
-    t = co.group_sort_timestamps(timestamps_copy, timestamps_nodes, range(nodes))
+    t = ts.group_sort_timestamps(timestamps_copy, timestamps_nodes, range(nodes))
     return t
 
 
@@ -109,14 +103,14 @@ def plot_average_timestamp_differences(ax, ts_diffs, shuffled_diffs):
     # Average difference between shuffled timestamps
     avg_shuffled_diffs = [np.nanmean(shuffled_diff) for shuffled_diff in shuffled_diffs if len(shuffled_diff) > 1]
     ax.hist(avg_shuffled_diffs, label='shuffled')
-    co.plot_mean_median(ax, avg_shuffled_diffs)
+    ut.plot_mean_median(ax, avg_shuffled_diffs)
     ax.axvline(x=np.average(ts_diffs), linewidth=2, color='black',
-               label=f'actual: {co.round_to_n(np.average(ts_diffs), 3)}')
+               label=f'actual: {ut.round_to_n(np.average(ts_diffs), 3)}')
 
     percentage_diff = np.abs(np.average(ts_diffs) - np.nanmean(avg_shuffled_diffs)) * 100 / \
                       np.nanmean(avg_shuffled_diffs)
-    ax.plot([], [], ' ', label=f'%diff: {co.round_to_n(percentage_diff, 3)}')
-    ax.plot([], [], ' ', label=f'stdev: {co.round_to_n(np.nanstd(avg_shuffled_diffs), 3)}')
+    ax.plot([], [], ' ', label=f'%diff: {ut.round_to_n(percentage_diff, 3)}')
+    ax.plot([], [], ' ', label=f'stdev: {ut.round_to_n(np.nanstd(avg_shuffled_diffs), 3)}')
 
     ax.legend()
     ax.set_title('Histogram of average shuffled timestamp differences')
@@ -132,16 +126,5 @@ def plot_shuffle_test(adj, timestamps, shuffles, smallest=False, shuffle_nodes=F
 
     plot_timestamp_differences(ax1, ts_diffs, shuffled_diffs[0])
     plot_average_timestamp_differences(ax2, ts_diffs, shuffled_diffs)
-    co.enhance_plot(fig, show, filename, params_dict, directory)
+    ut.enhance_plot(fig, show, filename, params_dict, directory)
     return fig
-
-
-def diff_nodes(timestamps, g, threshold):
-    infected_nodes = np.where(np.array([len(t) for t in timestamps]) > 0)[0]
-    infected_nodes_comb = combinations(infected_nodes, 2)
-    lengths = []
-    for n in infected_nodes_comb:
-        min_diff = np.min(diff_vectors(timestamps[n[0]], timestamps[n[1]]))
-        if min_diff < threshold:
-            lengths.append(nx.shortest_path_length(g, n[0], n[1]))
-    return lengths

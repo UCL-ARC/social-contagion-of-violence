@@ -1,36 +1,34 @@
+"""
+Functions to manipulate timestamps
+"""
+
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
-from tick.hawkes import HawkesExpKern
 
-import src.common as co
+import src.utilities as ut
 
 
-def plot_network(graph_or_adj, min_edges=3, show=True, filename=None, params_dict=None, directory='results'):
-    g = co.to_graph(graph_or_adj)
-    fig = plt.figure(figsize=(8, 5))
-    gs = fig.add_gridspec(1, 3)
-    ax1 = fig.add_subplot(gs[0, 0:-1])
-    ax2 = fig.add_subplot(gs[0, 2])
+def group_sort_timestamps(timestamps, timestamps_nodes, node_list):
+    return [np.sort(timestamps[timestamps_nodes == node]) for node in node_list]
 
-    # plot network
-    pos = nx.spring_layout(g)
-    nx.draw_networkx_nodes(g, pos, node_size=10, alpha=0.4, ax=ax1, )
-    nx.draw_networkx_edges(g, pos, alpha=0.4, ax=ax1)
-    labels = {n: n for n, d in g.degree if d > min_edges}
-    nx.draw_networkx_labels(g, labels=labels, pos=pos, ax=ax1, font_size=10)
-    ax1.set_title(f'Network Diagram')
-    ax1.axis('off')
 
-    # plot degree rank
-    degree_sequence = sorted([d for n, d in g.degree()], reverse=True)
-    ax2.plot(degree_sequence, marker='.')
-    ax2.set_title('Degree rank plot')
-    ax2.set_xlabel(f'rank')
-    ax2.set_ylabel('degree')
+def split_timestamps(timestamps, time):
+    timestamps_left = []
+    timestamps_right = []
+    for t in timestamps:
+        timestamps_left.append(t[t < time])
+        timestamps_right.append(t[t >= time])
+    return timestamps_left, timestamps_right
 
-    co.enhance_plot(fig, show, filename, params_dict, directory)
-    return fig, pos
+
+def get_infected_nodes(timestamps, times):
+    infected_nodes = np.zeros([len(times), len(timestamps)])
+    for node, t in enumerate(timestamps):
+        for i, time in enumerate(times):
+            values = t[np.logical_and(t >= time, t < time + 1)]
+            if np.size(values) > 0:
+                infected_nodes[i, node] = 1
+    return infected_nodes
 
 
 def plot_timestamps(timestamps, node_list=None, show=True, filename=None, params_dict=None, directory='results',
@@ -49,13 +47,13 @@ def plot_timestamps(timestamps, node_list=None, show=True, filename=None, params
     else:
         timestamps_count = [len(t) for t in timestamps]
     ax2.hist(timestamps_count, **ax2_kw)
-    co.plot_mean_median(ax2, timestamps_count)
+    ut.plot_mean_median(ax2, timestamps_count)
     ax2.legend()
     ax2.set_title('Histogram of events per node')
     ax2.set_xlabel(f'Events per node')
     ax2.set_ylabel('Frequency')
 
-    co.enhance_plot(fig, show, filename, params_dict, directory)
+    ut.enhance_plot(fig, show, filename, params_dict, directory)
     return fig
 
 
@@ -70,6 +68,7 @@ def repeat_simulations(simulation, n_simulations):
         simulation.reset()
         simulation.simulate()
         multi_timestamps.append(simulation.timestamps)
+        print("Total Jumps: ", simulation.n_total_jumps)
     return multi_timestamps
 
 
@@ -87,24 +86,5 @@ def plot_multi_timestamps(multi_timestamps, show=True, filename=None, params_dic
     ax2.set_xlabel(f'Event Counts per Node')
     ax2.set_ylabel('Frequency')
 
-    co.enhance_plot(fig, show, filename, params_dict, directory)
+    ut.enhance_plot(fig, show, filename, params_dict, directory)
     return fig
-
-
-def split_timestamps(timestamps, time):
-    timestamps_left = []
-    timestamps_right = []
-    for t in timestamps:
-        timestamps_left.append(t[np.where(t < time)])
-        timestamps_right.append(t[np.where(t >= time)])
-    return timestamps_left, timestamps_right
-
-
-def get_infected_nodes(timestamps, times):
-    infected_nodes = np.zeros([len(times), len(timestamps)])
-    for node, t in enumerate(timestamps):
-        for i, time in enumerate(times):
-            values = t[np.where(np.logical_and(t >= time, t < time + 1))]
-            if np.size(values) > 0:
-                infected_nodes[i, node] = 1
-    return infected_nodes
