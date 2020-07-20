@@ -17,6 +17,14 @@ def round_to_n(value, n):
     return str('{:g}'.format(float('{:.{p}g}'.format(value, p=n))))
 
 
+def top_n(values, percent=1):
+    highest_risk = np.zeros(len(values))
+    n = int(np.ceil(len(values) * percent / 100))
+    value = -np.sort(-values)[n - 1]
+    highest_risk[values >= value] = 1
+    return highest_risk
+
+
 def enhance_plot(fig=None, show=True, filename=None, params_dict=None, dir_name='results'):
     if fig is None:
         fig = plt.gcf()

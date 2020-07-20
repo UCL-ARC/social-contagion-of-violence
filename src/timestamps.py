@@ -12,22 +12,16 @@ def group_sort_timestamps(timestamps, timestamps_nodes, node_list):
     return [np.sort(timestamps[timestamps_nodes == node]) for node in node_list]
 
 
-def split_timestamps(timestamps, time):
-    timestamps_left = []
-    timestamps_right = []
-    for t in timestamps:
-        timestamps_left.append(t[t < time])
-        timestamps_right.append(t[t >= time])
-    return timestamps_left, timestamps_right
-
-
-def get_infected_nodes(timestamps, times):
-    infected_nodes = np.zeros([len(times), len(timestamps)])
+def get_infected_nodes(timestamps, times, count=False):
+    infected_nodes = np.zeros([len(times) - 1, len(timestamps)])
     for node, t in enumerate(timestamps):
-        for i, time in enumerate(times):
-            values = t[np.logical_and(t >= time, t < time + 1)]
-            if np.size(values) > 0:
-                infected_nodes[i, node] = 1
+        for i, time in enumerate(times[:-1]):
+            values = np.size(t[np.logical_and(t >= time, t < times[i + 1])])
+            if count:
+                infected_nodes[i, node] = values
+            else:
+                if values > 0:
+                    infected_nodes[i, node] = 1
     return infected_nodes
 
 

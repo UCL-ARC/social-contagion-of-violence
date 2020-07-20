@@ -1,8 +1,9 @@
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
+from tick.base import TimeFunction
 
-import src as src
+import src.utilities as ut
 
 
 class SimuBaseline:
@@ -13,9 +14,10 @@ class SimuBaseline:
         self.rng = np.random.default_rng(self.seed)
         self.network = None
         self.adjacency = None
-        self.assortativity = dict()
+        self.assortativity = None
         self.features = None
         self.node_average = None
+        self.time_functions = None
         self._set_network()
         self._set_adjacency()
 
@@ -95,25 +97,34 @@ class SimuBaseline:
         ax2.set_xlabel(f'rank')
         ax2.set_ylabel('degree')
 
-        src.enhance_plot(fig, show, filename, params_dict, directory)
+        ut.enhance_plot(fig, show, filename, params_dict, directory)
 
-    def set_features(self, feature_description, feature_variation, average_events):
-        arr = np.zeros([len(feature_description), self.n_nodes])
-        for i, (feature_name, feature) in enumerate(feature_description.items()):
-            if feature.get('homophilic'):
-                values = self._homophilic_feature(values=[1], max_nodes=int(self.n_nodes * feature['p'][1]))
+    def set_features(self, proportions, variation, average_events, homophilic=False):
+        arr = np.zeros([len(proportions), self.n_nodes])
+        self.assortativity = np.zeros(len(proportions))
+        for i, feature in enumerate(proportions):
+            if homophilic:
+                values = self._homophilic_feature(values=[1], max_nodes=int(self.n_nodes * feature))
             else:
-                values = self.rng.choice(a=feature['values'], size=self.n_nodes, p=feature['p'])
-            nx.set_node_attributes(self.network, {i: k for i, k in enumerate(values)}, feature_name)
-            self.assortativity[feature_name] = nx.attribute_assortativity_coefficient(self.network, feature_name)
+                values = self.rng.choice(a=(-1, 1), size=self.n_nodes, p=(1 - feature, feature))
+            nx.set_node_attributes(self.network, {i: k for i, k in enumerate(values)}, i)
+            self.assortativity[i] = nx.attribute_assortativity_coefficient(self.network, i)
             arr[i] = values
-        self.features = arr.T * feature_variation
-        logit = 1 / (1 + np.exp(-np.sum(self.features, 1)))
+        self.features = arr.T
+        logit = 1 / (1 + np.exp(-np.sum(self.features, 1) * variation))
         self.node_average = logit * self.n_nodes * average_events / sum(logit)
+
+    def set_sinusoidal_time(self, end_time, row, omega, phi, num=100):
+        t_values = np.linspace(0, end_time, num=num)
+        tfs = []
+        for n in self.node_average:
+            y_values = n * (1 + row * np.sin(omega * t_values + phi)) / end_time
+            tfs.append(TimeFunction((t_values, y_values)))
+        self.time_functions = tfs
 
     # TODO Improve
     def plot_node_average(self, show=True, filename=None, params_dict=None, directory='results'):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
         ax1.hist(self.features, bins=50)
         ax2.hist(self.node_average, bins=50)
-        src.enhance_plot(fig, show, filename, params_dict, directory)
+        ut.enhance_plot(fig, show, filename, params_dict, directory)

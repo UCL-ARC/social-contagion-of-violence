@@ -26,19 +26,22 @@ def test_homophily_max():
 
 def test_features():
     bs = SimuBaseline(n_nodes=4, network_type='path', seed=0)
-    bs.set_features(feature_description={'a': {'values': (-1, 1), 'p': (0.5, 0.5)}},
-                    average_events=2, feature_variation=1)
+    bs.set_features(proportions=[0.5], average_events=2, variation=1)
     np.testing.assert_array_equal(bs.features.T, [[1., -1., -1., -1.]])
     assert 2 == pytest.approx(np.sum(bs.node_average) / bs.n_nodes)
-    assert -0.2 == pytest.approx(bs.assortativity['a'])
 
 
 def test_features_multi():
     bs = SimuBaseline(n_nodes=3, network_type='path', seed=0)
-    bs.set_features(feature_description={'a': {'values': (-1, 1), 'p': (0.5, 0.5)},
-                                         'b': {'values': (-1, 1), 'p': (0.5, 0.5)}},
-                    average_events=2, feature_variation=1)
+    bs.set_features(proportions=[0.5, 0.5], average_events=2, variation=1)
     np.testing.assert_array_equal(bs.features.T, [[1., -1., -1.], [-1., 1., 1.]])
     assert 2 == pytest.approx(np.sum(bs.node_average) / bs.n_nodes)
-    assert -1 == pytest.approx(bs.assortativity['a']*3)
-    assert -1 == pytest.approx(bs.assortativity['b']*3)
+    np.testing.assert_array_almost_equal(bs.assortativity * 3, [-1, -1])
+
+
+def test_features_homophilic():
+    bs = SimuBaseline(n_nodes=3, network_type='path', seed=0)
+    bs.set_features(proportions=[0.5, 0.5], average_events=2, variation=1, homophilic=True)
+    np.testing.assert_array_equal(bs.features.T, [[-1., -1., 1.], [-1., 1., -1.]])
+    assert 2 == pytest.approx(np.sum(bs.node_average) / bs.n_nodes)
+    np.testing.assert_array_almost_equal(bs.assortativity * 3, [-1, -3])

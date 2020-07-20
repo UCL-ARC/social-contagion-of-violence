@@ -1,7 +1,8 @@
 import numpy as np
-import src.inference as infer
 import pytest
 import networkx as nx
+
+from src.hawkesexpkernelidentical import HawkesExpKernelIdentical
 
 mu = 0.5
 alpha = 0.2
@@ -27,20 +28,20 @@ for l in range(len(timestamps)):
 
 g = nx.Graph()
 g.add_edges_from([(0, 1), (0, 2)])
-
+hi = HawkesExpKernelIdentical(g)
 
 def test_recursive():
-    np.testing.assert_array_equal(infer._recursive(timestamps, beta), r_array)
+    np.testing.assert_array_equal(hi._recursive(timestamps, beta), r_array)
 
 
 def test_recursive_multi():
-    np.testing.assert_array_equal(infer._recursive_multi(timestamps, timestamps_neighbors, beta), r_array_multi)
+    np.testing.assert_array_equal(hi._recursive_multi(timestamps, timestamps_neighbors, beta), r_array_multi)
 
 
 def test_loglikelihood():
     expected = -mu * runtime - alpha * np.sum(1 - np.exp(-beta * (runtime - timestamps))) + \
                np.sum(np.log(mu + alpha * beta * r_array))
-    assert infer.log_likelihood(timestamps, mu, alpha, beta, runtime) == pytest.approx(expected)
+    assert hi._log_likelihood(timestamps, mu, alpha, beta, runtime) == pytest.approx(expected)
 
 
 def test_loglikelihood_multi():
@@ -49,24 +50,15 @@ def test_loglikelihood_multi():
                - alpha * np.sum(1 - np.exp(-beta * (runtime - timestamps_1))) \
                + np.sum(np.log(mu + alpha * beta * np.sum(r_array_multi, 1))) \
                + np.sum(np.log(mu + alpha * beta *
-                               np.sum(infer._recursive_multi(timestamps_1, [timestamps], beta), 1)))
+                               np.sum(hi._recursive_multi(timestamps_1, [timestamps], beta), 1)))
     # node 2 doesn't have contribution because doesn't have any timestamps
 
-    actual = infer.log_likelihood_multi(g, [timestamps, timestamps_1, timestamps_2], mu, alpha, beta, runtime)
+    actual = hi._log_likelihood_multi(g, [timestamps, timestamps_1, timestamps_2], mu, alpha, beta, runtime)
     assert integral == actual
 
 
-def test_contagion_risk_time():
+def test_predict_proba():
     expected = np.array([[0, 0, 0], [1, 0, 0]])
-    actual = infer.contagion_risk(g, [timestamps, timestamps_1, timestamps_2], 2, beta, [0, 2]) / beta
+    hi.timestamps = [timestamps, timestamps_1, timestamps_2]
+    actual = hi.predict_proba([0, 2], alpha=2, beta=beta, )/beta
     np.testing.assert_array_equal(expected, actual)
-
-
-def test_get_highest_risk_nodes():
-    np.testing.assert_array_equal(infer.get_highest_risk_nodes(np.array([3, 1, 2, 5, 0]), 60),
-                                  np.array([1, 0, 1, 1, 0]))
-
-
-def test_get_highest_risk_nodes_same():
-    np.testing.assert_array_equal(infer.get_highest_risk_nodes(np.array([3, 1, 2, 5, 2]), 60),
-                                  np.array([1, 0, 1, 1, 1]))
