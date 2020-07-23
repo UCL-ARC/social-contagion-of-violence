@@ -15,7 +15,7 @@ class HawkesExpKernelIdentical:
         self.alpha_range = None
         self.mu_range = None
         self.beta_range = None
-        self.n_total_jumps = None
+        self.n_training_jumps = None
         self.mu_average = None
         self.coef_ = None
         self.mu = None
@@ -29,8 +29,8 @@ class HawkesExpKernelIdentical:
             raise ValueError('length of timestamps should be the same as number of nodes')
         self.timestamps = timestamps
         self.training_time = training_time
-        self.n_total_jumps = np.sum(np.concatenate(timestamps)<self.training_time)
-        self.mu_average = self.n_total_jumps / (self.n_nodes * self.training_time)
+        self.n_training_jumps = np.sum(np.concatenate(timestamps) < self.training_time)
+        self.mu_average = self.n_training_jumps / (self.n_nodes * self.training_time)
         self._set_ranges()
         brute_res = brute(self._ll_multi, full_output=True, finish=0, Ns=5,
                           ranges=(self.mu_range, self.alpha_range, self.beta_range),
@@ -38,16 +38,21 @@ class HawkesExpKernelIdentical:
         ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='L-BFGS-B',
                            bounds=(self.mu_range, self.alpha_range, self.beta_range),
                            args=(self.network, timestamps, self.training_time, row, omega, phi, self.verbose))
+        self.brute_result = brute_res
         self.optimise_result = ggd_res
         self.coef_ = ggd_res.x
         self.mu = ggd_res.x[0]
-        self.alpha = ggd_res.x[1]
-        self.beta = ggd_res.x[2]
+        if ggd_res.x[1] < self.alpha_range[1] and ggd_res.x[2] > self.beta_range[0]:
+            self.alpha = ggd_res.x[1]
+            self.beta = ggd_res.x[2]
+        else:
+            self.alpha = 1e-10
+            self.beta = 0
 
     def _set_ranges(self):
         self.mu_range = (1e-10, 2 * self.mu_average)
-        self.alpha_range = (1e-10, 0.5)
-        self.beta_range = (1e-10, 1)
+        self.alpha_range = (1e-10, 1)
+        self.beta_range = (1 / (self.training_time * 5), 1)
 
     def _recursive(self, timestamps, beta, ):
         r_array = np.zeros(len(timestamps))

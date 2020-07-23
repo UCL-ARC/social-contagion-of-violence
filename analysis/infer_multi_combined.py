@@ -1,116 +1,105 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from dataclasses import asdict
 import mlflow
-import time
 import os
 
 os.environ['DISPLAY'] = '0'  # Workaround to ensure tick does not overwrite the matplotlib back_end
 from tick.hawkes import SimuHawkesExpKernels
 import src as src
+from input.parameters import params
 
 #######################################################################################################################
 # INITIALISE
 
 setup = dict(
-    start_time=time.time(),
     output_dir=src.set_directory('results/infer_multi_combined/'),
     show_fig=True,
     save_results=False,
     verbose=False,
     percentages=np.array([0.5, 1, 2, 5, 10, 20, 40, 60, 80, 100]),
+    n_realizations=1,
+    n_shuffles=1000,
+    experiment_name='29SEP',
 )
 
-params = dict(
-    training_time=150,  # training time, which could be in hours, days or weeks depending on scenario
-    prediction_time=50,  # testing time
-    average_events=0.2,  # expected number of random events averaged over training time and all nodes
-    contagion=0.1,  # expected number of "direct" triggered events
-    lifetime=5,  # average time between initial and triggered event
-    n_nodes=2000,  # number of nodes
-    network_type='barabasi_albert',  # type of graph, either barabasi_albert or newman_watts_strogatz
-    seed=0,
-    feature_proportions = [0.5,0.5,0.5,0.5,0.5],
-    homophilic=False,
-    feature_variation=2,  # applies a correlation between node features and node risk
-    row=0,  # 0.5,
-    omega=1,  # 0.05,
-    phi=0,  # np.pi,
-)
+for seed in range(setup['n_realizations']):
+    for param_name, param in params.items():
+        #######################################################################################################################
+        # SIMULATE
 
-#######################################################################################################################
-# SIMULATE
+        # Create network and baseline intensity
+        bs = src.SimuBaseline(n_nodes=param.n_nodes, network_type=param.network_type, seed=seed)
+        bs.set_features(average_events=param.average_events, proportions=param.feature_proportions,
+                        variation=param.feature_variation, homophilic=param.homophilic)
+        bs.set_sinusoidal_time(param.run_time, param.row, param.omega, param.phi)
+        bs.plot_node_average(show=setup['show_fig'], filename='baseline_variation.png', directory=setup['output_dir'])
+        bs.plot_network(feature=0, show=setup['show_fig'], filename='network.png', directory=setup['output_dir'])
 
-# Create network and baseline intensity
-bs = src.SimuBaseline(n_nodes=params['n_nodes'], network_type=params['network_type'], seed=params['seed'])
-bs.set_features(average_events=params['average_events'], proportions=params['feature_proportions'],
-                variation=params['feature_variation'], homophilic=params['homophilic'])
-bs.set_sinusoidal_time(params['training_time'] + params['prediction_time'],
-                       params['row'], params['omega'], params['phi'])
-bs.plot_node_average(show=setup['show_fig'], filename='baseline_variation.png', directory=setup['output_dir'])
-bs.plot_network(feature=0, show=setup['show_fig'], filename='network.png', directory=setup['output_dir'])
+        # Generate timestamps
+        simu = SimuHawkesExpKernels(adjacency=param.contagion * bs.adjacency,
+                                    decays=1 / param.lifetime, baseline=bs.time_functions,
+                                    end_time=param.run_time, seed=seed,
+                                    verbose=setup['verbose'], force_simulation=True)
+        simu.track_intensity(intensity_track_step=param.run_time)
+        simu.simulate()
+        t = simu.timestamps
+        src.plot_timestamps(t, show=setup['show_fig'], filename='timestamps.png', directory=setup['output_dir'])
 
-# Generate timestamps
-simu = SimuHawkesExpKernels(adjacency=params['contagion'] * bs.adjacency,
-                            decays=1 / params['lifetime'],
-                            baseline=bs.time_functions,
-                            seed=params['seed'],
-                            end_time=params['training_time'] + params['prediction_time'],
-                            verbose=setup['verbose'],
-                            force_simulation=True)
-simu.simulate()
-t = simu.timestamps
-src.plot_timestamps(t, show=setup['show_fig'], filename='timestamps.png', directory=setup['output_dir'])
+        #######################################################################################################################
+        # INFER AND PREDICT
 
-#######################################################################################################################
-# INFER AND PREDICT
+        infected_nodes = src.get_infected_nodes(t, range(param.training_time, param.run_time))
 
-infected_nodes = src.get_infected_nodes(t, range(params['training_time'],
-                                                 params['training_time'] + params['prediction_time']))
+        # Contagion Model
+        model_contagion = src.HawkesExpKernelIdentical(bs.network, verbose=setup['verbose'])
+        model_contagion.fit(t, training_time=param.training_time, row=param.row, omega=param.omega, phi=param.phi)
+        risk_contagion = model_contagion.predict_proba(range(param.training_time, param.run_time - 1))
+        cm_contagion = src.confusion_matrix(infected_nodes, risk_contagion, setup['percentages'])
 
-# Contagion Model
-model_contagion = src.HawkesExpKernelIdentical(bs.network, verbose=setup['verbose'])
-model_contagion.fit(t, training_time=params['training_time'],
-                    row=params['row'], omega=params['omega'], phi=params['phi'])
-risk_contagion = model_contagion.predict_proba(range(params['training_time'],
-                                                     params['training_time'] + params['prediction_time'] - 1))
-cm_contagion = src.confusion_matrix(infected_nodes, risk_contagion, setup['percentages'])
+        # Demographic Model
+        y_demographic = src.get_infected_nodes(t, (0, param.training_time))[0]
+        model_demographic = LogisticRegression(random_state=seed)
+        model_demographic.fit(bs.features, y_demographic)
+        risk_demographic = np.array([model_demographic.predict_proba(bs.features)[:, 1]
+                                     for _ in range(param.prediction_time - 1)])
+        cm_demographic = src.confusion_matrix(infected_nodes, risk_demographic, setup['percentages'])
 
-# Demographic Model
-y_demographic = src.get_infected_nodes(t, (0, params['training_time']))[0]
-model_demographic = LogisticRegression(random_state=params['seed'])
-model_demographic.fit(bs.features, y_demographic)
-risk_demographic = np.array([model_demographic.predict_proba(bs.features)[:, 1]
-                             for _ in range(params['prediction_time'] - 1)])
-cm_demographic = src.confusion_matrix(infected_nodes, risk_demographic, setup['percentages'])
+        # Combined Model
+        risk_combined = src.norm(risk_contagion) + src.norm(risk_demographic)
+        cm_combined = src.confusion_matrix(infected_nodes, risk_combined, setup['percentages'])
 
-# Combined Model
-risk_combined = risk_contagion[:] / np.sum(risk_contagion, 1)[:, np.newaxis] + \
-                risk_demographic[:] / np.sum(risk_demographic, 1)[:, np.newaxis]
-cm_combined = src.confusion_matrix(infected_nodes, risk_combined, setup['percentages'])
+        # Random Model
+        rng = np.random.default_rng(seed)
+        risk_random = rng.uniform(0, 1, size=[param.prediction_time - 1, param.n_nodes])
+        cm_random = src.confusion_matrix(infected_nodes, risk_random, setup['percentages'])
 
-# Random Model
-rng = np.random.default_rng(params['seed'])
-risk_random = rng.uniform(0, 1, size=[params['prediction_time'] - 1, params['n_nodes']])
-cm_random = src.confusion_matrix(infected_nodes, risk_random, setup['percentages'])
+        src.plot_cdf(
+            {'contagion': cm_contagion, 'demographic': cm_demographic, 'combined': cm_combined, 'random': cm_random},
+            setup['percentages'], time=param.prediction_time - 1,
+            show=setup['show_fig'], filename='cdf.png', directory=setup['output_dir'], )
 
-src.plot_cdf({'contagion': cm_contagion, 'demographic': cm_demographic, 'combined': cm_combined, 'random': cm_random},
-             setup['percentages'], time=params['prediction_time'] - 1,
-             show=setup['show_fig'], filename='cdf.png', directory=setup['output_dir'], )
-setup['end_time'] = time.time()
+        ########################################################################################################################
+        ## SAVE
 
-########################################################################################################################
-## SAVE
+        if setup['save_results']:
+            # Remote
+            # mlflow.set_tracking_uri('databricks')
+            # mlflow.set_experiment('/Users/soumaya.mauthoor.17@ucl.ac.uk/contagion/'+ param.experiment_name'])
 
-if setup['save_results']:
-    # Remote
-    # mlflow.set_tracking_uri('databricks')
-    # mlflow.set_experiment('/Users/soumaya.mauthoor.17@ucl.ac.uk/contagion_simulation')
+            # Locally
+            mlflow.set_tracking_uri('./mlruns')
+            mlflow.set_experiment(setup['experiment_name'])
 
-    # Locally
-    mlflow.set_tracking_uri('./mlruns')
-    mlflow.set_experiment('/infer_multi_combined')
+            with mlflow.start_run(run_name=param_name):
+                mlflow.set_tag('seed', seed)
+                mlflow.log_params(asdict(param))
+                mlflow.log_metric('n_training_jumps', model_contagion.n_training_jumps)
+                mlflow.log_metric('n_testing_jumps', simu.n_total_jumps - model_contagion.n_training_jumps)
+                mlflow.log_metric('contagion_mu', model_contagion.mu)
+                mlflow.log_metric('contagion_alpha', model_contagion.alpha)
+                mlflow.log_metric('contagion_beta', model_contagion.beta)
+                mlflow.log_metrics({f'demographic_{i}': v for i, v in enumerate(model_demographic.coef_[0])})
+                mlflow.log_artifacts(setup['output_dir'])
 
-    with mlflow.start_run():
-        mlflow.log_params(params)
-        mlflow.log_artifacts(setup['output_dir'])
-        mlflow.log_metric('time', setup['end_time'] - setup['start_time'])
+        print(f'{seed}: {param_name}')

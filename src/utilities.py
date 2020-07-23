@@ -24,6 +24,11 @@ def top_n(values, percent=1):
     highest_risk[values >= value] = 1
     return highest_risk
 
+def norm(arr):
+    with np.errstate(divide='ignore', invalid='ignore'):
+        c = np.true_divide( arr, np.sum(arr,1)[:,np.newaxis] )
+        c[ ~ np.isfinite( c )] = 0  # -inf inf NaN
+    return c
 
 def enhance_plot(fig=None, show=True, filename=None, params_dict=None, dir_name='results'):
     if fig is None:

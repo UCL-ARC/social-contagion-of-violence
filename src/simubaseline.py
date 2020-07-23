@@ -17,6 +17,7 @@ class SimuBaseline:
         self.assortativity = None
         self.features = None
         self.node_average = None
+        self.sum_features = None
         self.time_functions = None
         self._set_network()
         self._set_adjacency()
@@ -39,7 +40,7 @@ class SimuBaseline:
     def _set_adjacency(self):
         self.adjacency = nx.to_numpy_array(self.network)
 
-    def _homophilic_feature(self, values=None, node_centers=None, max_nodes=None, base=-1, ):
+    def _homophilic_feature(self, values=None, node_centers=None, max_nodes=None, base=0, ):
         node_list = []
         node_attribute = {i: base for i in self.network.nodes}
         if max_nodes is None:
@@ -100,19 +101,27 @@ class SimuBaseline:
         ut.enhance_plot(fig, show, filename, params_dict, directory)
 
     def set_features(self, proportions, variation, average_events, homophilic=False):
-        arr = np.zeros([len(proportions), self.n_nodes])
+
+        if homophilic:
+            self.features = np.zeros(([self.n_nodes, len(proportions)]))
+            for i, p in enumerate(proportions):
+                self.features[:, i] = self._homophilic_feature(values=[1], max_nodes=int(self.n_nodes * p))
+        else:
+            self.features = self.rng.binomial(n=1, p=proportions, size=(self.n_nodes, len(proportions)))
+
+        self.sum_features = np.sum(self.features - np.average(self.features), 1)
+        log_shift = -np.log(1 / average_events - 1)
+        # The error is a work-around to ensure that the average of the node_average is equal to the average_events
+        # This is probably caused by floating-point errors
+        # Note that this fix is not enough for large variations (>1.5)
+        error = np.average(1 / (1 + np.exp(-(self.sum_features * variation + log_shift)))) - average_events
+        log_shift_error = -np.log(1 / (average_events-error) - 1)
+        self.node_average = 1 / (1 + np.exp(-(self.sum_features * variation + log_shift_error)))
+
         self.assortativity = np.zeros(len(proportions))
-        for i, feature in enumerate(proportions):
-            if homophilic:
-                values = self._homophilic_feature(values=[1], max_nodes=int(self.n_nodes * feature))
-            else:
-                values = self.rng.choice(a=(-1, 1), size=self.n_nodes, p=(1 - feature, feature))
-            nx.set_node_attributes(self.network, {i: k for i, k in enumerate(values)}, i)
+        for i in range(len(proportions)):
+            nx.set_node_attributes(self.network, dict(enumerate(self.features[:, i])), i)
             self.assortativity[i] = nx.attribute_assortativity_coefficient(self.network, i)
-            arr[i] = values
-        self.features = arr.T
-        logit = 1 / (1 + np.exp(-np.sum(self.features, 1) * variation))
-        self.node_average = logit * self.n_nodes * average_events / sum(logit)
 
     def set_sinusoidal_time(self, end_time, row, omega, phi, num=100):
         t_values = np.linspace(0, end_time, num=num)

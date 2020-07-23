@@ -2,32 +2,44 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
+import os
+
+os.environ['DISPLAY'] = '0'
+from src import SimuBaseline
+
+# TODO Turn this into an integration test
 
 n = 1000
+features = 5
+p = 0.2
+variation = 1
+average_events = 0.2
 r = 10
+avg_risk = []
 coeffs = []
 scores = []
-scaling = 1
 
 for seed in range(r):
     rng = np.random.default_rng(seed)
-    gender = rng.choice((-1, 1), size=n, p=(0.9,0.1))
-    age = rng.choice((-1, 1), size=n, p=(0.9,0.1))
-    arrests = rng.choice((-1, 1), size=n, p=(0.9,0.1))
-    xb = gender + age + arrests
-    risk = 1 / (1 + np.exp(-xb*scaling))
-    plt.hist(risk); plt.show()
-    y = rng.binomial(n=1, p=risk)
-    x = np.array([gender, age, arrests]).T
-
     model = LogisticRegression(random_state=seed)
-    model.fit(x, y)
-    coeffs.append(np.concatenate([model.coef_[0], model.intercept_]))
-    y_pred = model.predict(x)
+
+    bs = SimuBaseline(n_nodes=n, network_type='path', seed=seed)
+    bs.set_features(proportions=np.ones(features) * p, variation=variation, average_events=average_events)
+    avg_risk.append(np.average(bs.node_average))
+    y = rng.binomial(n=1, p=bs.node_average)
+    model.fit(bs.features, y)
+    y_pred = model.predict(bs.features)
+
+    coeffs.append(model.coef_[0])
     scores.append(accuracy_score(y, y_pred))
 
+plt.hist(bs.sum_features);
+plt.show()
+plt.hist(bs.node_average);
+plt.show()
+plt.scatter(bs.sum_features, bs.node_average);
+plt.show()
+print(np.average(avg_risk))
+# Should be close to average_events
 print(np.average(coeffs, 0), np.std(coeffs, 0))
-# [0.93457335 1.01115506 1.01225805 0.01431867] [0.11067048 0.10161891 0.10335749 0.10000723]
-print(np.average(scores, 0), np.std(scores, 0))
-# 0.8924 0.008475848040166843
-
+# Should be close to variation
