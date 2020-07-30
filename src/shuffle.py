@@ -7,6 +7,8 @@ import src.utilities as ut
 import src.timestamps as ts
 
 
+# TODO Turn into a class and speed up performance
+
 def diff_vectors(v1, v2, smallest=False):
     if len(v1) == 0 or len(v2) == 0:
         return np.array([])
@@ -91,8 +93,8 @@ def repeat_shuffle_diff(adj, timestamps, shuffles, smallest=False, shuffle_nodes
 
 
 def plot_timestamp_differences(ax, ts_diffs1, ts_diffs2):
-    ax.hist(ts_diffs1, alpha=0.4, label='actual')
-    ax.hist(ts_diffs2, alpha=0.4, label='shuffled')
+    ax.hist(ts_diffs1, alpha=0.4, label='actual', color='black', bins=25)
+    ax.hist(ts_diffs2, alpha=0.4, label='shuffled', bins=25)
     ax.legend()
     ax.set_title('Histogram of timestamp differences')
     ax.set_xlabel(f'Timestamp difference')
@@ -100,31 +102,34 @@ def plot_timestamp_differences(ax, ts_diffs1, ts_diffs2):
 
 
 def plot_average_timestamp_differences(ax, ts_diffs, shuffled_diffs):
+    ax.axvline(x=np.average(ts_diffs), linewidth=2, color='black',
+               label=f'actual mean: {ut.round_to_n(np.average(ts_diffs), 3)}')
     # Average difference between shuffled timestamps
     avg_shuffled_diffs = [np.nanmean(shuffled_diff) for shuffled_diff in shuffled_diffs if len(shuffled_diff) > 1]
-    ax.hist(avg_shuffled_diffs, label='shuffled')
-    ut.plot_mean_median(ax, avg_shuffled_diffs)
-    ax.axvline(x=np.average(ts_diffs), linewidth=2, color='black',
-               label=f'actual: {ut.round_to_n(np.average(ts_diffs), 3)}')
+    ax.hist(avg_shuffled_diffs, label='shuffled', bins=25)
+    ax.axvline(x=np.nanmean(avg_shuffled_diffs), linewidth=2, color='r',
+               label=f'mean of avg: {ut.round_to_n(np.average(avg_shuffled_diffs), 3)}')
 
-    percentage_diff = np.abs(np.average(ts_diffs) - np.nanmean(avg_shuffled_diffs)) * 100 / \
-                      np.nanmean(avg_shuffled_diffs)
-    ax.plot([], [], ' ', label=f'%diff: {ut.round_to_n(percentage_diff, 3)}')
-    ax.plot([], [], ' ', label=f'stdev: {ut.round_to_n(np.nanstd(avg_shuffled_diffs), 3)}')
+    diff = np.nanmean(avg_shuffled_diffs) - np.average(ts_diffs)
+    diffvsstd = diff / np.nanstd(avg_shuffled_diffs)
+    ax.plot([], [], ' ', label=f'diff: {ut.round_to_n(diff, 3)}')
+    ax.plot([], [], ' ', label=f'diff/std: {ut.round_to_n(diffvsstd, 2)}')
 
     ax.legend()
-    ax.set_title('Histogram of average shuffled timestamp differences')
+    ax.set_title('Histogram of average timestamp differences')
     ax.set_xlabel(f'Timestamp difference')
     ax.set_ylabel('Frequency')
+    return diff, diffvsstd
 
 
-def plot_shuffle_test(adj, timestamps, shuffles, smallest=False, shuffle_nodes=False, seed=None, verbose=False,
+def plot_shuffle_test(adj, timestamps, shuffles, smallest=True, shuffle_nodes=False, seed=None, verbose=False,
                       show=True, filename=None, params_dict=None, directory='results'):
     ts_diffs = diff_neighbours(adj, timestamps, smallest)
     shuffled_diffs = repeat_shuffle_diff(adj, timestamps, shuffles, smallest, shuffle_nodes, seed, verbose)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
 
     plot_timestamp_differences(ax1, ts_diffs, shuffled_diffs[0])
-    plot_average_timestamp_differences(ax2, ts_diffs, shuffled_diffs)
+    diff, diffvsstd = plot_average_timestamp_differences(ax2, ts_diffs, shuffled_diffs)
+    plt.tight_layout()
     ut.enhance_plot(fig, show, filename, params_dict, directory)
-    return fig
+    return fig, (diff, diffvsstd)

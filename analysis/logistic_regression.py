@@ -12,8 +12,8 @@ from src import SimuBaseline
 n = 1000
 features = 5
 p = 0.2
-variation = 1
-average_events = 0.2
+variation = 0.5
+average_mu = 0.2
 r = 10
 avg_risk = []
 coeffs = []
@@ -24,20 +24,20 @@ for seed in range(r):
     model = LogisticRegression(random_state=seed)
 
     bs = SimuBaseline(n_nodes=n, network_type='path', seed=seed)
-    bs.set_features(proportions=np.ones(features) * p, variation=variation, average_events=average_events)
-    avg_risk.append(np.average(bs.node_average))
-    y = rng.binomial(n=1, p=bs.node_average)
+    bs.simulate(proportions=np.ones(features) * p, variation=variation, mean_mu=average_mu)
+    avg_risk.append(np.average(bs.node_mu))
+    y = rng.binomial(n=1, p=bs.node_mu)
     model.fit(bs.features, y)
     y_pred = model.predict(bs.features)
 
     coeffs.append(model.coef_[0])
     scores.append(accuracy_score(y, y_pred))
 
-plt.hist(bs.sum_features);
+plt.hist(bs.sum_features)
 plt.show()
-plt.hist(bs.node_average);
+plt.hist(bs.node_mu)
 plt.show()
-plt.scatter(bs.sum_features, bs.node_average);
+plt.scatter(bs.sum_features, bs.node_mu)
 plt.show()
 print(np.average(avg_risk))
 # Should be close to average_events

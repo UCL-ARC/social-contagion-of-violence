@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from dataclasses import asdict
 import mlflow
@@ -13,38 +14,40 @@ from input.parameters import params
 # INITIALISE
 
 setup = dict(
-    output_dir=src.set_directory('results/infer_multi_combined/'),
     show_fig=True,
-    save_results=False,
     verbose=False,
     percentages=np.array([0.5, 1, 2, 5, 10, 20, 40, 60, 80, 100]),
-    n_realizations=1,
+    seeds=range(1),
     n_shuffles=1000,
-    experiment_name='29SEP',
+    experiment_name=None,
 )
 
-for seed in range(setup['n_realizations']):
+for seed in setup['seeds']:
     for param_name, param in params.items():
+        setup['output_dir'] = src.set_directory(os.path.join('results/', param_name))
         #######################################################################################################################
         # SIMULATE
 
         # Create network and baseline intensity
         bs = src.SimuBaseline(n_nodes=param.n_nodes, network_type=param.network_type, seed=seed)
-        bs.set_features(average_events=param.average_events, proportions=param.feature_proportions,
-                        variation=param.feature_variation, homophilic=param.homophilic)
-        bs.set_sinusoidal_time(param.run_time, param.row, param.omega, param.phi)
-        bs.plot_node_average(show=setup['show_fig'], filename='baseline_variation.png', directory=setup['output_dir'])
-        bs.plot_network(feature=0, show=setup['show_fig'], filename='network.png', directory=setup['output_dir'])
+        bs.simulate(mean_mu=param.mean_mu, proportions=param.feature_proportions,
+                    variation=param.feature_variation, homophilic=param.homophilic,
+                    end_time=param.run_time, row=param.row, omega=param.omega, phi=param.phi)
+        bs.plot_node_mu(show=setup['show_fig'], filename='baseline_variation.png', directory=setup['output_dir'])
+        bs.plot_network(show=setup['show_fig'], filename='network.png', directory=setup['output_dir'])
 
         # Generate timestamps
-        simu = SimuHawkesExpKernels(adjacency=param.contagion * bs.adjacency,
-                                    decays=1 / param.lifetime, baseline=bs.time_functions,
-                                    end_time=param.run_time, seed=seed,
-                                    verbose=setup['verbose'], force_simulation=True)
-        simu.track_intensity(intensity_track_step=param.run_time)
+        simu = SimuHawkesExpKernels(adjacency=param.alpha * bs.adjacency, baseline=bs.time_functions,
+                                    decays=1 / param.lifetime, end_time=param.run_time,
+                                    seed=seed, verbose=setup['verbose'], force_simulation=False)
+        simu.threshold_negative_intensity(True)
         simu.simulate()
         t = simu.timestamps
-        src.plot_timestamps(t, show=setup['show_fig'], filename='timestamps.png', directory=setup['output_dir'])
+        _, clustering = src.plot_timestamps(t, bs.network, simulation=simu, show=setup['show_fig'],
+                                            filename='timestamps.png', directory=setup['output_dir'])
+        _, shuffle = src.plot_shuffle_test(bs.network, t, setup['n_shuffles'], seed=seed, verbose=setup['verbose'],
+                                           show=setup['show_fig'], filename='shuffle_test.png',
+                                           directory=setup['output_dir'])
 
         #######################################################################################################################
         # INFER AND PREDICT
@@ -82,7 +85,7 @@ for seed in range(setup['n_realizations']):
         ########################################################################################################################
         ## SAVE
 
-        if setup['save_results']:
+        if setup['experiment_name'] is not None:
             # Remote
             # mlflow.set_tracking_uri('databricks')
             # mlflow.set_experiment('/Users/soumaya.mauthoor.17@ucl.ac.uk/contagion/'+ param.experiment_name'])
@@ -96,10 +99,17 @@ for seed in range(setup['n_realizations']):
                 mlflow.log_params(asdict(param))
                 mlflow.log_metric('n_training_jumps', model_contagion.n_training_jumps)
                 mlflow.log_metric('n_testing_jumps', simu.n_total_jumps - model_contagion.n_training_jumps)
+                mlflow.log_metric('assortativity', bs.assortativity[-1])
+                mlflow.log_metric('clustering_occurrence', clustering[0])
+                mlflow.log_metric('clustering_count', clustering[1])
+                mlflow.log_metric('shuffle_diff', shuffle[0])
+                mlflow.log_metric('shuffle_diffvsstd', shuffle[1])
                 mlflow.log_metric('contagion_mu', model_contagion.mu)
                 mlflow.log_metric('contagion_alpha', model_contagion.alpha)
                 mlflow.log_metric('contagion_beta', model_contagion.beta)
                 mlflow.log_metrics({f'demographic_{i}': v for i, v in enumerate(model_demographic.coef_[0])})
+                mlflow.log_metric('0.01_hit_rate', cm_contagion[1][3] / np.sum(cm_contagion[1][2:3]))
                 mlflow.log_artifacts(setup['output_dir'])
 
-        print(f'{seed}: {param_name}')
+        print(f'{seed}: {param_name}, {model_contagion.coef_}')
+        plt.close('all')

@@ -16,7 +16,7 @@ class HawkesExpKernelIdentical:
         self.mu_range = None
         self.beta_range = None
         self.n_training_jumps = None
-        self.mu_average = None
+        self.lambda_mean = None
         self.coef_ = None
         self.mu = None
         self.alpha = None
@@ -24,20 +24,20 @@ class HawkesExpKernelIdentical:
         self.optimise_result = None
         self.training_time = None
 
-    def fit(self, timestamps, training_time, row=0, omega=1, phi=0, ):
+    def fit(self, timestamps, training_time, row=0, omega=1, phi=0, Ns=5):
         if len(timestamps) != self.n_nodes:
             raise ValueError('length of timestamps should be the same as number of nodes')
         self.timestamps = timestamps
         self.training_time = training_time
         self.n_training_jumps = np.sum(np.concatenate(timestamps) < self.training_time)
-        self.mu_average = self.n_training_jumps / (self.n_nodes * self.training_time)
+        self.lambda_mean = self.n_training_jumps / (self.n_nodes * self.training_time)
         self._set_ranges()
-        brute_res = brute(self._ll_multi, full_output=True, finish=0, Ns=5,
+        brute_res = brute(self._ll_multi, full_output=True, finish=0, Ns=Ns,
                           ranges=(self.mu_range, self.alpha_range, self.beta_range),
-                          args=(self.network, timestamps, self.training_time, row, omega, phi, self.verbose), )
+                          args=(timestamps, self.training_time, row, omega, phi, self.verbose))
         ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='L-BFGS-B',
                            bounds=(self.mu_range, self.alpha_range, self.beta_range),
-                           args=(self.network, timestamps, self.training_time, row, omega, phi, self.verbose))
+                           args=(timestamps, self.training_time, row, omega, phi, self.verbose))
         self.brute_result = brute_res
         self.optimise_result = ggd_res
         self.coef_ = ggd_res.x
@@ -50,9 +50,11 @@ class HawkesExpKernelIdentical:
             self.beta = 0
 
     def _set_ranges(self):
-        self.mu_range = (1e-10, 2 * self.mu_average)
+        # Assumes mu cannot be much larger than the mean intensity
+        self.mu_range = (1e-10, 2 * self.lambda_mean)
         self.alpha_range = (1e-10, 1)
-        self.beta_range = (1 / (self.training_time * 5), 1)
+        # Assumes the contagion lifetime must be smaller than half of the training time
+        self.beta_range = (2 /self.training_time , 1)
 
     def _recursive(self, timestamps, beta, ):
         r_array = np.zeros(len(timestamps))
@@ -105,11 +107,11 @@ class HawkesExpKernelIdentical:
         ll_events_not_occured = mu * runtime + sinusoidal_int + kernel_int
         return ll_events_occured - ll_events_not_occured
 
-    def _log_likelihood_multi(self, g, timestamps, mu, alpha, beta, runtime=None, row=0, omega=1, phi=0):
+    def _log_likelihood_multi(self, timestamps, mu, alpha, beta, runtime=None, row=0, omega=1, phi=0):
         ll_multi = 0
-        for node in g.nodes:
+        for node in self.network.nodes:
             node_ts = timestamps[node][timestamps[node] <= runtime]
-            node_ts_neighbors = [timestamps[i][timestamps[i] <= runtime] for i in g.neighbors(node)]
+            node_ts_neighbors = [timestamps[i][timestamps[i] <= runtime] for i in self.network.neighbors(node)]
             ll_multi += self._log_likelihood(node_ts, mu, alpha, beta, runtime, row, omega, phi, node_ts_neighbors)
         if self.verbose:
             print(f"mu: {mu}, alpha: {alpha}, beta: {beta}, ll: {ll_multi}")
@@ -122,8 +124,8 @@ class HawkesExpKernelIdentical:
 
     def _ll_multi(self, params, *args, ):
         mu, alpha, beta = params
-        g, timestamps, runtime, row, omega, phi, verbose = args
-        return -self._log_likelihood_multi(g, timestamps, mu, alpha, beta, runtime, row, omega, phi, )
+        timestamps, runtime, row, omega, phi, verbose = args
+        return -self._log_likelihood_multi(timestamps, mu, alpha, beta, runtime, row, omega, phi, )
 
     def _ll_fixed_beta(self, params, *args):
         mu, alpha, = params
@@ -132,8 +134,8 @@ class HawkesExpKernelIdentical:
 
     def _ll_fixed_beta_multi(self, params, *args):
         mu, alpha, = params
-        g, timestamps, runtime, beta, row, omega, phi, verbose = args
-        return -self._log_likelihood_multi(g, timestamps, mu, alpha, beta, runtime, row, omega, phi, )
+        timestamps, runtime, beta, row, omega, phi, verbose = args
+        return -self._log_likelihood_multi(timestamps, mu, alpha, beta, runtime, row, omega, phi, )
 
     def _ll_fixed_mu_alpha(self, params, *args):
         beta, = params
@@ -142,8 +144,8 @@ class HawkesExpKernelIdentical:
 
     def _ll_fixed_mu_alpha_multi(self, params, *args):
         beta, = params
-        g, timestamps, runtime, mu, alpha, row, omega, phi, verbose = args
-        return -self._log_likelihood_multi(g, timestamps, mu, alpha, beta, runtime, row, omega, phi, )
+        timestamps, runtime, mu, alpha, row, omega, phi, verbose = args
+        return -self._log_likelihood_multi(timestamps, mu, alpha, beta, runtime, row, omega, phi, )
 
     def predict_proba(self, times, alpha=None, beta=None):
         node_risk = np.zeros([len(times), self.n_nodes])

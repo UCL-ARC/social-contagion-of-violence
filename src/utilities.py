@@ -10,6 +10,9 @@ def dict_string(d):
 def set_directory(dir_name):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
+    else:
+        for f in os.listdir(dir_name):
+            os.unlink(os.path.join(dir_name,f))
     return dir_name
 
 
@@ -24,13 +27,15 @@ def top_n(values, percent=1):
     highest_risk[values >= value] = 1
     return highest_risk
 
+
 def norm(arr):
     with np.errstate(divide='ignore', invalid='ignore'):
-        c = np.true_divide( arr, np.sum(arr,1)[:,np.newaxis] )
-        c[ ~ np.isfinite( c )] = 0  # -inf inf NaN
+        c = np.true_divide(arr, np.sum(arr, 1)[:, np.newaxis])
+        c[~ np.isfinite(c)] = 0  # -inf inf NaN
     return c
 
-def enhance_plot(fig=None, show=True, filename=None, params_dict=None, dir_name='results'):
+
+def enhance_plot(fig=None, show=True, filename=None, params_dict=None, dir_name='results', clear=True):
     if fig is None:
         fig = plt.gcf()
     if params_dict is not None:
@@ -41,8 +46,5 @@ def enhance_plot(fig=None, show=True, filename=None, params_dict=None, dir_name=
         fig.savefig(os.path.join(dir_name, filename))
     if show:
         fig.show()
-
-
-def plot_mean_median(ax, data):
-    ax.axvline(x=np.nanmean(data), linewidth=2, color='r', label=f'mean: {round_to_n(np.average(data), 3)}')
-    ax.axvline(x=np.nanmedian(data), linewidth=2, color='g', label=f'median: {round_to_n(np.median(data), 3)}')
+    if clear:
+        fig.clf()

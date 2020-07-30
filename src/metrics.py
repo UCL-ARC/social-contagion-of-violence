@@ -53,6 +53,7 @@ def plot_cdf(cms, percentages, time, show=True, filename=None, directory='result
     ax1.indicate_inset_zoom(axins)
 
     plt.legend()
+    plt.tight_layout()
     # TODO investigate why this causes second x axis to disappear
     # ut.enhance_plot(fig=fig, show=show, filename=filename, params_dict=params_dict, dir_name=directory)
     if show:

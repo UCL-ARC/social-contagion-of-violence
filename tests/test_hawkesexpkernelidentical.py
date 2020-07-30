@@ -30,6 +30,7 @@ g = nx.Graph()
 g.add_edges_from([(0, 1), (0, 2)])
 hi = HawkesExpKernelIdentical(g)
 
+
 def test_recursive():
     np.testing.assert_array_equal(hi._recursive(timestamps, beta), r_array)
 
@@ -53,12 +54,12 @@ def test_loglikelihood_multi():
                                np.sum(hi._recursive_multi(timestamps_1, [timestamps], beta), 1)))
     # node 2 doesn't have contribution because doesn't have any timestamps
 
-    actual = hi._log_likelihood_multi(g, [timestamps, timestamps_1, timestamps_2], mu, alpha, beta, runtime)
+    actual = hi._log_likelihood_multi([timestamps, timestamps_1, timestamps_2], mu, alpha, beta, runtime)
     assert integral == actual
 
 
 def test_predict_proba():
     expected = np.array([[0, 0, 0], [1, 0, 0]])
     hi.timestamps = [timestamps, timestamps_1, timestamps_2]
-    actual = hi.predict_proba([0, 2], alpha=2, beta=beta, )/beta
+    actual = hi.predict_proba([0, 2], alpha=2, beta=beta, ) / beta
     np.testing.assert_array_equal(expected, actual)
