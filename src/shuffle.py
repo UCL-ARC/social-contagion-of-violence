@@ -93,31 +93,30 @@ def repeat_shuffle_diff(adj, timestamps, shuffles, smallest=False, shuffle_nodes
 
 
 def plot_timestamp_differences(ax, ts_diffs1, ts_diffs2):
-    ax.hist(ts_diffs1, alpha=0.4, label='actual', color='black', bins=25)
-    ax.hist(ts_diffs2, alpha=0.4, label='shuffled', bins=25)
+    ax.hist(ts_diffs1, alpha=0.4, label='Actual', color='black', bins=25)
+    ax.hist(ts_diffs2, alpha=0.4, label='Shuffled', bins=25)
     ax.legend()
-    ax.set_title('Histogram of timestamp differences')
-    ax.set_xlabel(f'Timestamp difference')
+    ax.set_title('Min. time between neighbouring events')
+    ax.set_xlabel(f'Time difference')
     ax.set_ylabel('Frequency')
 
 
 def plot_average_timestamp_differences(ax, ts_diffs, shuffled_diffs):
     ax.axvline(x=np.average(ts_diffs), linewidth=2, color='black',
-               label=f'actual mean: {ut.round_to_n(np.average(ts_diffs), 3)}')
+               label=f'Actual: {ut.round_to_n(np.average(ts_diffs), 3)}')
     # Average difference between shuffled timestamps
     avg_shuffled_diffs = [np.nanmean(shuffled_diff) for shuffled_diff in shuffled_diffs if len(shuffled_diff) > 1]
-    ax.hist(avg_shuffled_diffs, label='shuffled', bins=25)
+    ax.hist(avg_shuffled_diffs, bins=25)
     ax.axvline(x=np.nanmean(avg_shuffled_diffs), linewidth=2, color='r',
-               label=f'mean of avg: {ut.round_to_n(np.average(avg_shuffled_diffs), 3)}')
+               label=f'Shuffled: {ut.round_to_n(np.average(avg_shuffled_diffs), 3)}')
 
     diff = np.nanmean(avg_shuffled_diffs) - np.average(ts_diffs)
     diffvsstd = diff / np.nanstd(avg_shuffled_diffs)
-    ax.plot([], [], ' ', label=f'diff: {ut.round_to_n(diff, 3)}')
-    ax.plot([], [], ' ', label=f'diff/std: {ut.round_to_n(diffvsstd, 2)}')
+    ax.plot([], [], ' ', label=f'Z-score: {ut.round_to_n(diffvsstd, 2)}')
 
-    ax.legend()
-    ax.set_title('Histogram of average timestamp differences')
-    ax.set_xlabel(f'Timestamp difference')
+    ax.legend(framealpha=0)
+    ax.set_title('Mean min. time between neighbouring events')
+    ax.set_xlabel(f'Mean time difference')
     ax.set_ylabel('Frequency')
     return diff, diffvsstd
 

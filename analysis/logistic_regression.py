@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, confusion_matrix
-import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score
 import os
 
 os.environ['DISPLAY'] = '0'
@@ -33,13 +32,9 @@ for seed in range(r):
     coeffs.append(model.coef_[0])
     scores.append(accuracy_score(y, y_pred))
 
-plt.hist(bs.sum_features)
-plt.show()
-plt.hist(bs.node_mu)
-plt.show()
-plt.scatter(bs.sum_features, bs.node_mu)
-plt.show()
+bs.plot_node_mu(show=True)
 print(np.average(avg_risk))
 # Should be close to average_events
-print(np.average(coeffs, 0), np.std(coeffs, 0))
+print(np.average(coeffs),np.std(coeffs))
 # Should be close to variation
+print(np.average(scores))

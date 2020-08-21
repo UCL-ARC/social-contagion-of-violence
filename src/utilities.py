@@ -7,12 +7,13 @@ def dict_string(d):
     return str(d).replace("{", "").replace("}", "").replace("'", "").replace(":", "=")
 
 
-def set_directory(dir_name):
+def set_directory(dir_name, clear=True):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     else:
-        for f in os.listdir(dir_name):
-            os.unlink(os.path.join(dir_name,f))
+        if clear:
+            for f in os.listdir(dir_name):
+                os.unlink(os.path.join(dir_name,f))
     return dir_name
 
 

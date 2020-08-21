@@ -18,9 +18,9 @@ class HawkesExpKernelIdentical:
         self.n_training_jumps = None
         self.lambda_mean = None
         self.coef_ = None
-        self.mu = None
-        self.alpha = None
-        self.beta = None
+        self.mu_est = None
+        self.alpha_est = None
+        self.beta_est = None
         self.optimise_result = None
         self.training_time = None
 
@@ -40,21 +40,29 @@ class HawkesExpKernelIdentical:
                            args=(timestamps, self.training_time, row, omega, phi, self.verbose))
         self.brute_result = brute_res
         self.optimise_result = ggd_res
-        self.coef_ = ggd_res.x
-        self.mu = ggd_res.x[0]
-        if ggd_res.x[1] < self.alpha_range[1] and ggd_res.x[2] > self.beta_range[0]:
-            self.alpha = ggd_res.x[1]
-            self.beta = ggd_res.x[2]
+        self._set_coeffs(ggd_res.x)
+
+    def _set_coeffs(self, coeffs):
+        self.coef_ = coeffs
+        if self.alpha_range[0] < np.round(coeffs[1], 5) < self.alpha_range[1] \
+                and self.beta_range[0] < np.round(coeffs[2], 5) < self.beta_range[1]:
+            self.mu_est = coeffs[0]
+            self.alpha_est = coeffs[1]
+            self.beta_est = coeffs[2]
         else:
-            self.alpha = 1e-10
-            self.beta = 0
+            self.mu_est = self.lambda_mean
+            self.alpha_est = 1e-10
+            self.beta_est = 0
+        self.label = f'$\\hat\\alpha$:{ut.round_to_n(self.alpha_est, 3)}, $\\hat\\beta_h$:{ut.round_to_n(self.beta_est, 3)}'
 
     def _set_ranges(self):
         # Assumes mu cannot be much larger than the mean intensity
         self.mu_range = (1e-10, 2 * self.lambda_mean)
+        # Assumes alpha cannot be larger than 1 which would result in critical number of events
         self.alpha_range = (1e-10, 1)
         # Assumes the contagion lifetime must be smaller than half of the training time
-        self.beta_range = (2 /self.training_time , 1)
+        # and longer than 1/3 of a time unit
+        self.beta_range = (2 / self.training_time, 5)
 
     def _recursive(self, timestamps, beta, ):
         r_array = np.zeros(len(timestamps))
@@ -150,9 +158,9 @@ class HawkesExpKernelIdentical:
     def predict_proba(self, times, alpha=None, beta=None):
         node_risk = np.zeros([len(times), self.n_nodes])
         if alpha is None:
-            alpha = self.alpha
+            alpha = self.alpha_est
         if beta is None:
-            beta = self.beta
+            beta = self.beta_est
         for node in self.network.nodes:
             node_ts_neighbors = np.concatenate([self.timestamps[i] for i in self.network.neighbors(node)])
             for i, time in enumerate(times):

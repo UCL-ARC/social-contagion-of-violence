@@ -32,27 +32,28 @@ def plot_timestamps(timestamps, network, simulation=None, node_list=None,
 
     counts, bins = np.histogram(np.concatenate(timestamps), bins=25)
     ax1.hist(bins[:-1], bins, weights=counts / bins[1])
+    ax1.axhline(y=np.mean(counts / bins[1]), linewidth=2, color='black')
 
     if simulation is not None:
-        lm, bs = mean_intensity(simulation)
-        ax1.axhline(y=lm * simulation.n_nodes, linewidth=2, color='b', label=f'Mean intensity: {ut.round_to_n(lm, 3)}')
-        ax1.axhline(y=bs * simulation.n_nodes, linewidth=2, color='r', label=f'Mean baseline: {ut.round_to_n(bs, 3)}')
+        lm, bs = mean_intensity(simulation) * simulation.n_nodes
+        ax1.axhline(y=lm, linewidth=2, color='b', label=f'Est. mean events: {ut.round_to_n(lm, 3)}')
+        ax1.axhline(y=bs, linewidth=2, color='r', label=f'Est. base events: {ut.round_to_n(bs, 3)}')
         ax1.legend(loc='lower left')
-    ax1.set_title('Events per time unit')
+    ax1.set_title('Events per time unit over time')
     ax1.set_xlabel(f'Time')
-    ax1.set_ylabel('Frequency')
+    ax1.set_ylabel('Events per time unit')
 
     if node_list is not None:
-        timestamps_count = [len(timestamps[n]) for n in node_list]
+        ts_count = [len(timestamps[n]) for n in node_list]
     else:
-        timestamps_count = [len(t) for t in timestamps]
-    ax2.hist(timestamps_count)
-    ax2.axvline(x=np.nanmean(timestamps_count), linewidth=2, color='r',
-                label=f'Mean events: {ut.round_to_n(np.average(timestamps_count), 3)}')
-    clustering = calc_clustering(timestamps, network)
-    ax2.plot([], [], ' ', label=f"Assortativity:")
-    ax2.plot([], [], ' ', label=f"By occurrence _ {np.round(clustering[0], 3)}")
-    ax2.plot([], [], ' ', label=f"By count _ {np.round(clustering[1], 3)}")
+        ts_count = [len(t) for t in timestamps]
+    ax2.hist(ts_count)
+    ax2.axvline(x=np.mean(ts_count), linewidth=2, color='black',
+                label=f'Mean events: {ut.round_to_n(np.mean(ts_count), 3)}')
+    event_assortativities = event_assortativity(timestamps, network)
+    ax2.plot([], [], ' ', label=f"Event assortativity")
+    ax2.plot([], [], ' ', label=f" occurrence: {np.round(event_assortativities[0], 3)}")
+    ax2.plot([], [], ' ', label=f" count: {np.round(event_assortativities[1], 3)}")
     ax2.legend()
     ax2.set_title('Histogram of events per node')
     ax2.set_xlabel(f'Events per node')
@@ -60,10 +61,10 @@ def plot_timestamps(timestamps, network, simulation=None, node_list=None,
 
     plt.tight_layout()
     ut.enhance_plot(fig, show, filename, params_dict, directory)
-    return fig, clustering
+    return fig, event_assortativities
 
 
-def calc_clustering(timestamps, network, start_time=0, end_time=None):
+def event_assortativity(timestamps, network, start_time=0, end_time=None):
     if end_time is None:
         end_time = np.max(np.concatenate(timestamps)) + 1
     infections = get_infected_nodes(timestamps, times=[start_time, end_time]).tolist()[0]
@@ -114,5 +115,6 @@ def mean_intensity(simulation):
     get_norm = np.vectorize(lambda kernel: kernel.get_norm())
     kernel_norms = get_norm(simulation.kernels)
     base_norms = get_norm(simulation.baseline)
-    return (np.mean(inv(np.eye(simulation.n_nodes) - kernel_norms).dot(base_norms) / simulation.end_time),
-            np.mean(inv(np.eye(simulation.n_nodes)).dot(base_norms) / simulation.end_time))
+    mean_intensity = np.mean(inv(np.eye(simulation.n_nodes) - kernel_norms).dot(base_norms) / simulation.end_time)
+    mean_baseline = np.mean(inv(np.eye(simulation.n_nodes)).dot(base_norms) / simulation.end_time)
+    return np.array([mean_intensity, mean_baseline])

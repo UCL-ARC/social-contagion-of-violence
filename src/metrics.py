@@ -34,7 +34,7 @@ def plot_cdf(cms, percentages, time, show=True, filename=None, directory='result
         ax1.plot(percentages / 100, data_values[:, 3] / np.sum(data_values[:, 2:], 1), '-o', label=data_name)
         ax2.scatter(np.sum(data_values[:, [1, 3]], 1) / time, data_values[:, 3], label=data_name, )
     ax1.set_title('Cumulative Distribution Function')
-    ax1.set_xlabel('Proportion of nodes selected')
+    ax1.set_xlabel('Proportion of nodes selected per time unit')
     ax1.set_ylabel('Hit Rate / Proportion of nodes identified')
     ax2.set_xlabel('Number of nodes selected per time unit')
     # TODO investigate why this ylabel does not appear
@@ -52,7 +52,7 @@ def plot_cdf(cms, percentages, time, show=True, filename=None, directory='result
     axins.set_ylim(y1, y2)
     ax1.indicate_inset_zoom(axins)
 
-    plt.legend()
+    plt.legend(loc='upper left', framealpha=0)
     plt.tight_layout()
     # TODO investigate why this causes second x axis to disappear
     # ut.enhance_plot(fig=fig, show=show, filename=filename, params_dict=params_dict, dir_name=directory)
@@ -61,3 +61,11 @@ def plot_cdf(cms, percentages, time, show=True, filename=None, directory='result
     if filename is not None:
         fig.savefig(os.path.join(directory, filename))
     return fig
+
+
+def matched_nodes(y_true, risk, percent=1):
+    n = []
+    for y_true_time, risk_time in zip(y_true, risk):
+        y_pred_nodes = np.where(_top_percent(risk_time, percent) == 1)[0]
+        n.append(y_pred_nodes[np.in1d(y_pred_nodes, np.where(y_true_time == 1)[0])])
+    return n

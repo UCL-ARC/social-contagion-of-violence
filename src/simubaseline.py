@@ -28,7 +28,7 @@ class SimuBaseline:
             g = nx.barabasi_albert_graph(self.n_nodes, 1, seed=self.seed)
         elif self.network_type == 'newman_watts_strogatz':
             # Create a graph with more even distribution of edges
-            g = nx.newman_watts_strogatz_graph(self.n_nodes, 2, 0.2, seed=self.seed)
+            g = nx.newman_watts_strogatz_graph(self.n_nodes, 2, 0.5, seed=self.seed)
         elif self.network_type == 'path':
             g = nx.path_graph(self.n_nodes)
         elif self.network_type == 'star':
@@ -67,21 +67,23 @@ class SimuBaseline:
         return np.array(list(node_attribute.values()))
 
     # TODO split into two functions
-    def plot_network(self, show=True, filename=None, params_dict=None, directory='results'):
+    def plot_network(self, n=200, show=True, filename=None, params_dict=None, directory='results'):
         fig = plt.figure(figsize=(8, 5))
         gs = fig.add_gridspec(1, 5)
         ax1 = fig.add_subplot(gs[0, 0:-1])
         ax2 = fig.add_subplot(gs[0, 4])
 
         # plot network
-        pos = nx.spiral_layout(self.network)
-        node_color = [k for i, k in self.network.nodes.data(-1)]
-        nc = nx.draw_networkx_nodes(self.network, pos=pos, node_size=2, node_color=node_color, cmap=plt.cm.jet,
-                                    ax=ax1, label=f"Node mu, assortativity: {np.round(self.assortativity[-1], 3)}")
+        g = nx.subgraph(self.network, range(n))
+        pos = nx.spiral_layout(g)
+        nx.draw_networkx_edges(g, pos, alpha=0.3, ax=ax1)
+        node_color = [k for i, k in g.nodes.data(-1)]
+        nc = nx.draw_networkx_nodes(g, pos=pos, node_size=4, node_color=node_color, cmap=plt.cm.jet,
+                                    ax=ax1,
+                                    label=f"Node baseline, assortativity: {np.round(self.assortativity[-1], 3)}")
         plt.colorbar(nc, ax=ax1)
-        ax1.legend()
-        nx.draw_networkx_edges(self.network, pos, alpha=0.1, ax=ax1)
-        ax1.set_title(f'Network Diagram')
+        ax1.legend(loc='lower left')
+        ax1.set_title(f'Network Diagram of first {n} nodes')
         ax1.axis('off')
 
         # plot degree rank
@@ -132,15 +134,19 @@ class SimuBaseline:
     # TODO Improve
     def plot_node_mu(self, show=True, filename=None, params_dict=None, directory='results'):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3))
-        ax1.hist(self.node_mu)
-        ax1.set_title('Histogram of node baseline (mu)')
-        ax1.set_xlabel('Node baseline (mu)')
-        ax1.set_ylabel('Frequency')
 
-        ax2.scatter(self.sum_features, self.node_mu)
-        ax2.set_title('Sum of node features against baseline')
-        ax2.set_ylabel('Node baseline (mu)')
-        ax2.set_xlabel('Sum of node features')
+        ax1.scatter(self.sum_features, self.node_mu)
+        ax1.set_title('Sum of node features against baseline')
+        ax1.set_ylabel('Node baseline $\\mu^k$')
+        ax1.set_xlabel('Sum of normalised node features')
+
+        ax2.hist(self.node_mu)
+        ax2.axvline(x=np.nanmean(self.node_mu), linewidth=2, color='r',
+                    label=f'Mean baseline: {ut.round_to_n(np.nanmean(self.node_mu), 3)}')
+        ax2.legend()
+        ax2.set_title('Histogram of node baseline')
+        ax2.set_xlabel('Node baseline $\\mu^k$')
+        ax2.set_ylabel('Frequency')
 
         plt.tight_layout()
         ut.enhance_plot(fig, show, filename, params_dict, directory)

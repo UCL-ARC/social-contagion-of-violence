@@ -42,5 +42,5 @@ def test_group_sort_timestamps_node_list_range():
 def test_get_clustering():
     g = nx.Graph()
     g.add_edges_from([(0, 1), (0, 2)])
-    assert ts.calc_clustering(t1, g)[0] * 3, -1
-    assert ts.calc_clustering(t1, g)[1], pytest.approx(-0.8181)
+    assert ts.event_assortativity(t1, g)[0] * 3, -1
+    assert ts.event_assortativity(t1, g)[1], pytest.approx(-0.8181)
