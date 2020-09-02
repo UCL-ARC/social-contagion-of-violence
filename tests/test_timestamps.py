@@ -39,8 +39,8 @@ def test_group_sort_timestamps_node_list_range():
         np.testing.assert_array_equal(i, j)
 
 
-def test_get_clustering():
+def test_event_assortativity():
     g = nx.Graph()
     g.add_edges_from([(0, 1), (0, 2)])
-    assert ts.event_assortativity(t1, g)[0] * 3, -1
-    assert ts.event_assortativity(t1, g)[1], pytest.approx(-0.8181)
+    assert ts.timestamps_assortativity(t1, g)[0] * 3, -1
+    assert ts.timestamps_assortativity(t1, g)[1], pytest.approx(-0.8181)

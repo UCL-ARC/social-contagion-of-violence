@@ -23,7 +23,7 @@ for seed in range(r):
     model = LogisticRegression(random_state=seed)
 
     bs = SimuBaseline(n_nodes=n, network_type='path', seed=seed)
-    bs.simulate(proportions=np.ones(features) * p, variation=variation, mean_mu=average_mu)
+    bs.simulate(feature_proportions=np.ones(features) * p, mu_variation=variation, mu_mean=average_mu)
     avg_risk.append(np.average(bs.node_mu))
     y = rng.binomial(n=1, p=bs.node_mu)
     model.fit(bs.features, y)

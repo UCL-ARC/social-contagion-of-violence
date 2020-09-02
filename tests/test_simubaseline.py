@@ -1,10 +1,17 @@
 import numpy as np
 import pytest
+import networkx as nx
 from src import SimuBaseline
 
 
-def test_SimuBaseline():
+def test_SimuBaseline_path():
     bs = SimuBaseline(n_nodes=4, network_type='path', )
+    assert list(bs.network.edges) == [(0, 1), (1, 2), (2, 3)]
+
+
+def test_SimuBaseline_network():
+    g = nx.path_graph(4)
+    bs = SimuBaseline(network=g)
     assert list(bs.network.edges) == [(0, 1), (1, 2), (2, 3)]
 
 
@@ -26,14 +33,14 @@ def test_homophily_max():
 
 def test_features_single():
     bs = SimuBaseline(n_nodes=5, network_type='path', seed=0)
-    bs.simulate(proportions=[0.5], mean_mu=0.5, variation=1)
-    np.testing.assert_array_equal(bs.features.T, [[1., 0., 0., 0.,1]])
+    bs.simulate(feature_proportions=[0.5], mu_mean=0.5, mu_variation=1)
+    np.testing.assert_array_equal(bs.features.T, [[1., 0., 0., 0., 1]])
     assert 0.5 == pytest.approx(np.average(bs.node_mu), rel=1e-2)
 
 
 def test_features_multi():
     bs = SimuBaseline(n_nodes=3, network_type='path', seed=0)
-    bs.simulate(proportions=[0.5, 0.5], mean_mu=0.5, variation=0)
+    bs.simulate(feature_proportions=[0.5, 0.5], mu_mean=0.5, mu_variation=0)
     np.testing.assert_array_equal(bs.features.T, [[1., 0, 1.], [0., 0., 1.]])
     assert 0.5 == pytest.approx(np.average(bs.node_mu), rel=1e-2)
     np.testing.assert_array_almost_equal(bs.assortativity[:-1] * 3, [-3, -1])
@@ -41,7 +48,7 @@ def test_features_multi():
 
 def test_features_homophilic():
     bs = SimuBaseline(n_nodes=3, network_type='path', seed=0)
-    bs.simulate(proportions=[0.5, 0.5], mean_mu=0.5, variation=1, homophilic=True)
+    bs.simulate(feature_proportions=[0.5, 0.5], mu_mean=0.5, mu_variation=1, homophilic=True)
     np.testing.assert_array_equal(bs.features.T, [[0., 0., 1.], [0., 1., 0.]])
     assert 0.5 == pytest.approx(np.average(bs.node_mu), rel=1e-2)
     np.testing.assert_array_almost_equal(bs.assortativity[:-1] * 3, [-1, -3])

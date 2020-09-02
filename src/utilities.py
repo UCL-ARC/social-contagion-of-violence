@@ -21,14 +21,6 @@ def round_to_n(value, n):
     return str('{:g}'.format(float('{:.{p}g}'.format(value, p=n))))
 
 
-def top_n(values, percent=1):
-    highest_risk = np.zeros(len(values))
-    n = int(np.ceil(len(values) * percent / 100))
-    value = -np.sort(-values)[n - 1]
-    highest_risk[values >= value] = 1
-    return highest_risk
-
-
 def norm(arr):
     with np.errstate(divide='ignore', invalid='ignore'):
         c = np.true_divide(arr, np.sum(arr, 1)[:, np.newaxis])

@@ -8,11 +8,11 @@ diff_high = []; diff_low = []
 for n in range(100):
     high1 = np.random.uniform(0,100,size=10)
     high2 = np.random.uniform(0,100,size=10)
-    diff_high.append(st.diff_vectors(high1,high2))
+    diff_high.append(st._diff_vectors(high1, high2))
 
     low1 = np.random.uniform(0,100,size=1)
     low2 = np.random.uniform(0,100,size=1)
-    diff_low.append(st.diff_vectors(low1,low2))
+    diff_low.append(st._diff_vectors(low1, low2))
 
 p1 = plt.hist([np.average(n) for n in diff_high],alpha=0.5,bins=50,label='high')
 p2 = plt.hist([np.average(n) for n in diff_low],alpha=0.5,bins=50, label='low')

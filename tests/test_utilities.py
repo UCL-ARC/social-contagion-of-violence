@@ -32,3 +32,8 @@ def test_norm():
 def test_norm_zero():
     a = np.array([[0, 0, 1], [0, 0, 0]])
     np.testing.assert_array_equal(a, ms.norm(a))
+
+
+def test_dict_string():
+    a = dict(a=1, b=2)
+    assert ms.dict_string(a) == 'a= 1, b= 2'

@@ -1,5 +1,5 @@
 import numpy as np
-import src.metrics as me
+import src.evaluation as me
 
 
 def test_top_percent():
@@ -12,7 +12,7 @@ def test_top_percent_same():
 
 
 def test_confusion_matrix_():
-    actual = me.confusion_matrix(np.array([[1, 0, 1, 1, 0], [1, 0, 1, 1, 0]]),
-                                 np.array([[3, 1, 2, 5, 0], [3, 1, 2, 5, 0]]), percentages=[60, 100])
+    actual = me.cm_sum_percent(np.array([[1, 0, 1, 1, 0], [1, 0, 1, 1, 0]]),
+                               np.array([[3, 1, 2, 5, 0], [3, 1, 2, 5, 0]]), percentages=[60, 100])
     np.testing.assert_array_equal(np.array([[4., 0., 0., 6.], [0., 4., 0., 6.]]), actual)
 
