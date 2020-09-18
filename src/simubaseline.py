@@ -87,7 +87,7 @@ class SimuBaseline:
         g = nx.subgraph(self.network, range(n))
         pos = nx.spiral_layout(g)
         nx.draw_networkx_edges(g, pos, alpha=0.3, ax=ax1)
-        node_color = [k for i, k in g.nodes.data(-1)]
+        node_color = self.node_mu[:n]
         nc = nx.draw_networkx_nodes(g, pos=pos, node_size=4, node_color=node_color, cmap=plt.cm.jet, ax=ax1,
                                     label=f"Node baseline (assortativity = {np.round(self.assortativity[-1], 3)})")
         divider = make_axes_locatable(ax1)
