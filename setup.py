@@ -7,5 +7,5 @@ setup(
    author='Soumaya Mauthoor',
    author_email='e.lowther@ucl.ac.uk',
    packages=['src'],
-   install_requires=['tick', 'networkx'],
+   install_requires=['tick', 'networkx', 'mlflow '],
 )
