@@ -7,5 +7,5 @@ setup(
    author='Soumaya Mauthoor',
    author_email='e.lowther@ucl.ac.uk',
    packages=['contagion'],
-   install_requires=['tick'],
+   install_requires=['tick', 'networkx'],
 )
