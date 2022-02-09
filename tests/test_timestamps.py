@@ -1,6 +1,6 @@
 import numpy as np
 import networkx as nx
-import src.timestamps as ts
+import contagion.timestamps as ts
 import pytest
 
 start_time = 2

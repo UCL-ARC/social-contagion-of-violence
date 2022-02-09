@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize, brute
 
-import src.utilities as ut
+import contagion.utilities as ut
 
 
 class HawkesExpKernelIdentical:

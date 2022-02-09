@@ -1,4 +1,4 @@
-import src.shuffle as st
+import contagion.shuffle as st
 import matplotlib.pyplot as plt
 import numpy as np
 

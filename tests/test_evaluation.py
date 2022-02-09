@@ -1,5 +1,5 @@
 import numpy as np
-import src.evaluation as me
+import contagion.evaluation as me
 
 
 def test_top_percent():

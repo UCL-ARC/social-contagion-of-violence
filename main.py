@@ -9,7 +9,7 @@ import os
 # Comment out when running from the command line
 os.environ['DISPLAY'] = '0'
 from tick.hawkes import SimuHawkesExpKernels
-import src as src
+import contagion as src
 from input.simulationparams import simu_params
 
 #######################################################################################################################
