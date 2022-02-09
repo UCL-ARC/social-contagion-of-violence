@@ -4,3 +4,5 @@
 mlruns/*
 results/*
 .coverage
+*ipynb*
+macos_environment.yaml
