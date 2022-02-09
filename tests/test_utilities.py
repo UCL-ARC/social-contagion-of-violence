@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-import contagion.utilities as ms
+import src.utilities as ms
 
 
 @pytest.mark.parametrize("n,expected", [(1, '10'), (2, '12'), (3, '12')], ids=str)

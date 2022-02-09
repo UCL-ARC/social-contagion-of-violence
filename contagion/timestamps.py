@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import inv
 import networkx as nx
-import contagion.utilities as ut
+import src.utilities as ut
 
 
 def group_sort_timestamps(timestamps, timestamps_nodes, node_list):

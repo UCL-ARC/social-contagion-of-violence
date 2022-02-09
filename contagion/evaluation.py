@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
-import contagion.utilities as ut
+import src.utilities as ut
 
 
 def _top_percent(arr, x=1):

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from tick.base import TimeFunction
 
-import contagion.utilities as ut
+import src.utilities as ut
 
 
 class SimuBaseline:

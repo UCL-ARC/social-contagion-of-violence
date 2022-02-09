@@ -3,8 +3,8 @@ from itertools import combinations
 import matplotlib.pyplot as plt
 import sys
 
-import contagion.utilities as ut
-import contagion.timestamps as ts
+import src.utilities as ut
+import src.timestamps as ts
 
 
 # TODO speed up performance

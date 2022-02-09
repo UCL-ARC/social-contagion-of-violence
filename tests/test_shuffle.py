@@ -1,5 +1,5 @@
 import numpy as np
-import contagion.shuffle as sh
+import src.shuffle as sh
 import pytest
 import networkx as nx
 
