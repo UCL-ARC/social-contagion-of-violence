@@ -146,9 +146,9 @@ class HawkesExpKernelIdentical:
 
     def _log_likelihood_multi(self, timestamps, mu, alpha, beta, runtime=None, row=0, omega=1, phi=0):
         ll_multi = 0
-        for node in self.network.nodes:
-            node_ts = timestamps[node][timestamps[node] <= runtime]
-            node_ts_neighbors = [timestamps[i][timestamps[i] <= runtime] for i in self.network.neighbors(node)]
+        for idx, node in enumerate(self.network.nodes):
+            node_ts = timestamps[idx][timestamps[idx] <= runtime]
+            node_ts_neighbors = [timestamps[i][timestamps[i] <= runtime] for i, _ in enumerate(self.network.neighbors(node))]
             ll_multi += self._log_likelihood(node_ts, mu, alpha, beta, runtime, row, omega, phi, node_ts_neighbors)
         if self.verbose:
             print(f"mu: {mu}, alpha: {alpha}, beta: {beta}, ll: {ll_multi}")
@@ -186,10 +186,10 @@ class HawkesExpKernelIdentical:
             alpha = self.alpha_est
         if beta is None:
             beta = self.beta_est
-        for node in self.network.nodes:
-            node_ts_neighbors = np.concatenate([self.timestamps[i] for i in self.network.neighbors(node)])
+        for idx, node in enumerate(self.network.nodes):
+            node_ts_neighbors = np.concatenate([self.timestamps[i] for i, _ in enumerate(self.network.neighbors(node))])
             # TODO Limit to multiple of lifetime?
             for i, time in enumerate(times):
                 values = node_ts_neighbors[node_ts_neighbors < time]
-                node_risk[i, node] = alpha * beta * np.sum(np.exp(-beta * (time - values)))
+                node_risk[i, idx] = alpha * beta * np.sum(np.exp(-beta * (time - values)))
         return node_risk
