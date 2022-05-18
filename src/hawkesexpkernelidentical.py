@@ -64,16 +64,17 @@ class HawkesExpKernelIdentical:
         print('brute starting')
         brute_res = brute(self._ll_multi, full_output=True, finish=0, Ns=Ns,
                           ranges=(self.mu_range, self.alpha_range, self.beta_range),
-                          args=(timestamps, self.training_time, row, omega, phi, self.verbose))
+                          args=(timestamps, self.training_time, row, omega, phi, self.verbose), 
+                          workers=-1)
         print('brute done', brute_res[0])
-        print('minimize starting')
-        ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='L-BFGS-B',
-                           bounds=(self.mu_range, self.alpha_range, self.beta_range),
-                           args=(timestamps, self.training_time, row, omega, phi, self.verbose))
-        print('minimize done', ggd_res)
-        self.brute_result = brute_res
-        self.optimise_result = ggd_res
-        self._set_coeffs(ggd_res.x)
+        # print('minimize starting')
+        # ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='L-BFGS-B',
+        #                    bounds=(self.mu_range, self.alpha_range, self.beta_range),
+        #                    args=(timestamps, self.training_time, row, omega, phi, self.verbose))
+        # print('minimize done', ggd_res)
+        # self.brute_result = brute_res
+        # self.optimise_result = ggd_res
+        self._set_coeffs(brute_res[0])
 
     def _set_coeffs(self, coeffs):
         self.coef_ = coeffs
