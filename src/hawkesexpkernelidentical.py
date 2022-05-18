@@ -116,6 +116,7 @@ class HawkesExpKernelIdentical:
     def _kernel_int(self, timestamps, runtime, alpha, beta):
         # integrate kernel until runtime and sum
         kernel_int = - alpha * np.sum(np.exp(-beta * (runtime - timestamps)) - 1)
+        print('kernel_int: ', kernel_int)
         return kernel_int
 
     def _sinusoidal_comp(self, timestamps, mu, runtime, row, omega, phi):
@@ -128,25 +129,36 @@ class HawkesExpKernelIdentical:
     def _log_likelihood(self, timestamps, mu, alpha, beta, runtime=None, row=0, omega=1, phi=0,
                         timestamps_neighbors=None):
         if runtime is None:
+            print('runtime is none')
             runtime = timestamps[-1]
 
         if timestamps_neighbors is None:
+            print('neighbours is none')
             kernel_int = self._kernel_int(timestamps, runtime, alpha, beta)
             r_array = self._recursive(timestamps, beta)
         else:
+            print('there are neighbours, and runtime is: ', runtime)
+            print('there are neighbours, and alpha is: ', alpha)
+            print('there are neighbours, and beta is: ', beta)
             kernel_int = self._kernel_int(np.concatenate(timestamps_neighbors), runtime, alpha, beta)
             r_array = np.sum(self._recursive_multi(timestamps, timestamps_neighbors, beta, ), -1)
+            print('r_array is, ', r_array)
 
         sinusoidal_func, sinusoidal_int = self._sinusoidal_comp(timestamps, mu, runtime, row, omega, phi)
+        print('sinusoidal_func is: ', sinusoidal_func)
         # log-likelihood that each individual was not infected at all other times
         ll_events_occured = np.sum(np.log(mu + sinusoidal_func + alpha * beta * r_array))
         # log-likelihood of every infection event that did occur
+        print('mu: ', mu)
+        print('runtime: ', runtime)
+        print('sinusoidal_int: ', sinusoidal_int)
         ll_events_not_occured = mu * runtime + sinusoidal_int + kernel_int
         return ll_events_occured - ll_events_not_occured
 
     def _log_likelihood_multi(self, timestamps, mu, alpha, beta, runtime=None, row=0, omega=1, phi=0):
         ll_multi = 0
         for idx, node in enumerate(self.network.nodes):
+            print([nn for nn in self.network.neighbors(node)])
             node_ts = timestamps[idx][timestamps[idx] <= runtime]
             node_ts_neighbors = [timestamps[i][timestamps[i] <= runtime] for i, _ in enumerate(self.network.neighbors(node))]
             ll_multi += self._log_likelihood(node_ts, mu, alpha, beta, runtime, row, omega, phi, node_ts_neighbors)
