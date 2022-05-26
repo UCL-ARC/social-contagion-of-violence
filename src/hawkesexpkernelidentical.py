@@ -62,6 +62,7 @@ class HawkesExpKernelIdentical:
         self.lambda_mean = self.n_training_jumps / (self.n_nodes * self.training_time)
         self._set_ranges()
         print('brute starting')
+        print(self.mu_range, self.alpha_range, self.beta_range)
         brute_res = brute(self._ll_multi, full_output=True, finish=0, Ns=Ns,
                           ranges=(self.mu_range, self.alpha_range, self.beta_range),
                           args=(timestamps, self.training_time, row, omega, phi, self.verbose), 
