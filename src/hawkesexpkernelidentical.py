@@ -160,6 +160,7 @@ class HawkesExpKernelIdentical:
         return ll_events_occured - ll_events_not_occured
 
     def _log_likelihood_multi(self, timestamps, mu, alpha, beta, runtime=None, row=0, omega=1, phi=0):
+        print('_log_likelihood_multi', mu, alpha, beta)
         ll_multi = 0
         for node in self.network.nodes:
             node_ts = timestamps[node][timestamps[node] <= runtime]
@@ -170,6 +171,7 @@ class HawkesExpKernelIdentical:
         return ll_multi
 
     def _ll_multi(self, params, *args, ):
+        print('_ll_multi called', params)
         mu, alpha, beta = params
         timestamps, runtime, row, omega, phi, verbose = args
         return -self._log_likelihood_multi(timestamps, mu, alpha, beta, runtime, row, omega, phi, )
