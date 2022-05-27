@@ -68,7 +68,7 @@ class HawkesExpKernelIdentical:
                           args=(timestamps, self.training_time, row, omega, phi, self.verbose))
         print('brute done', brute_res[0])
         print('minimize starting')
-        ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='Powell',
+        ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='L-BFGS-B',
                            bounds=(self.mu_range, self.alpha_range, self.beta_range),
                            args=(timestamps, self.training_time, row, omega, phi, self.verbose))
         print('minimize done', ggd_res)
