@@ -68,7 +68,7 @@ class HawkesExpKernelIdentical:
                           args=(timestamps, self.training_time, row, omega, phi, self.verbose))
         print('brute done', brute_res[0])
         print('minimize starting')
-        ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='L-BFGS-B',
+        ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='Powell',
                            bounds=(self.mu_range, self.alpha_range, self.beta_range),
                            args=(timestamps, self.training_time, row, omega, phi, self.verbose))
         print('minimize done', ggd_res)
@@ -202,8 +202,20 @@ class HawkesExpKernelIdentical:
             beta = self.beta_est
         for node in self.network.nodes:
             node_ts_neighbors = np.concatenate([self.timestamps[i] for i in self.network.neighbors(node)])
+            print([self.timestamps[i] for i in self.network.neighbors(node)])
+            print(node_ts_neighbors)
+            print('---')
             # TODO Limit to multiple of lifetime?
             for i, time in enumerate(times):
                 values = node_ts_neighbors[node_ts_neighbors < time]
+                if len(values) > 1: 
+                    print('node: ', node)
+                    print(time)
+                    print(values)
+                    print('time-values:')
+                    print(time - values)
+                    print(-beta * (time - values))
+                    print(np.exp(-beta * (time - values)))
+                    print(alpha * beta * np.sum(np.exp(-beta * (time - values))))
                 node_risk[i, node] = alpha * beta * np.sum(np.exp(-beta * (time - values)))
         return node_risk
