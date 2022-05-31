@@ -65,7 +65,8 @@ class HawkesExpKernelIdentical:
         print(self.mu_range, self.alpha_range, self.beta_range)
         brute_res = brute(self._ll_multi, full_output=True, finish=0, Ns=Ns,
                           ranges=(self.mu_range, self.alpha_range, self.beta_range),
-                          args=(timestamps, self.training_time, row, omega, phi, self.verbose))
+                          args=(timestamps, self.training_time, row, omega, phi, self.verbose), 
+                          workers=-1)
         print('brute done', brute_res[0])
         print('minimize starting')
         ggd_res = minimize(self._ll_multi, x0=brute_res[0], method='Powell',
@@ -121,7 +122,6 @@ class HawkesExpKernelIdentical:
     def _kernel_int(self, timestamps, runtime, alpha, beta):
         # integrate kernel until runtime and sum
         kernel_int = - alpha * np.sum(np.exp(-beta * (runtime - timestamps)) - 1)
-        # print('kernel_int: ', kernel_int)
         return kernel_int
 
     def _sinusoidal_comp(self, timestamps, mu, runtime, row, omega, phi):
@@ -140,21 +140,13 @@ class HawkesExpKernelIdentical:
             kernel_int = self._kernel_int(timestamps, runtime, alpha, beta)
             r_array = self._recursive(timestamps, beta)
         else:
-            # print('there are neighbours, and runtime is: ', runtime)
-            # print('there are neighbours, and alpha is: ', alpha)
-            # print('there are neighbours, and beta is: ', beta)
             kernel_int = self._kernel_int(np.concatenate(timestamps_neighbors), runtime, alpha, beta)
             r_array = np.sum(self._recursive_multi(timestamps, timestamps_neighbors, beta, ), -1)
-            # print('r_array is, ', r_array)
 
         sinusoidal_func, sinusoidal_int = self._sinusoidal_comp(timestamps, mu, runtime, row, omega, phi)
-        # print('sinusoidal_func is: ', sinusoidal_func)
         # log-likelihood that each individual was not infected at all other times
         ll_events_occured = np.sum(np.log(mu + sinusoidal_func + alpha * beta * r_array))
         # log-likelihood of every infection event that did occur
-        # print('mu: ', mu)
-        # print('runtime: ', runtime)
-        # print('sinusoidal_int: ', sinusoidal_int)
         ll_events_not_occured = mu * runtime + sinusoidal_int + kernel_int
         return ll_events_occured - ll_events_not_occured
 
@@ -201,21 +193,10 @@ class HawkesExpKernelIdentical:
         if beta is None:
             beta = self.beta_est
         for node in self.network.nodes:
+            print('node: ', node)
             node_ts_neighbors = np.concatenate([self.timestamps[i] for i in self.network.neighbors(node)])
-            print([self.timestamps[i] for i in self.network.neighbors(node)])
-            print(node_ts_neighbors)
-            print('---')
             # TODO Limit to multiple of lifetime?
             for i, time in enumerate(times):
                 values = node_ts_neighbors[node_ts_neighbors < time]
-                if len(values) > 1: 
-                    print('node: ', node)
-                    print(time)
-                    print(values)
-                    print('time-values:')
-                    print(time - values)
-                    print(-beta * (time - values))
-                    print(np.exp(-beta * (time - values)))
-                    print(alpha * beta * np.sum(np.exp(-beta * (time - values))))
                 node_risk[i, node] = alpha * beta * np.sum(np.exp(-beta * (time - values)))
         return node_risk
