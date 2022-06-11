@@ -173,3 +173,40 @@ def shuffle_test(events, network, t_col, node_col, n_perm):
         means_perm.append(np.mean(min_diffs_perm))
         medians_perm.append(np.median(min_diffs_perm))
     return min_diffs_obs_mean, min_diffs_obs_median, means_perm, medians_perm
+
+
+def shuffle_test_nocache(events, network, t_col, node_col, n_perm):
+    events_ind = events.reset_index(drop=True)
+    events_ind = events_ind.reset_index()
+    t_arr = events_ind[t_col].values
+    # node_event_ixs = events_ind.groupby(node_col).indices
+    node_event_ixs = events_ind.groupby(node_col)['index'].apply(list).to_dict()
+    all_pairs = []
+    for n1, n2 in network.edges:
+        # Check whether both nodes experienced incident
+        if n1 in node_event_ixs and n2 in node_event_ixs:
+            n1_ixs = node_event_ixs[n1]
+            n2_ixs = node_event_ixs[n2]
+            edge_pairs = list(product(n1_ixs, n2_ixs))
+            all_pairs.append(edge_pairs)
+    min_diffs_obs = []
+    for edge_pairs in all_pairs:
+        min_diff = np.min(np.abs([(t_arr[i] - t_arr[j]) for (i, j) in edge_pairs]))
+        min_diffs_obs.append(min_diff)
+    min_diffs_obs_mean = np.mean(min_diffs_obs)
+    min_diffs_obs_median = np.median(min_diffs_obs)
+    # perm = np.arange(t_diffs.shape[0])
+    means_perm = []
+    medians_perm = []
+    # TODO: Fix indices
+    for perm_index in range(n_perm):
+        # TODO Use updated rng
+        # perm = np.random.permutation(np.arange(t_diffs.shape[0]))
+        perm = np.random.permutation(events_ind['index'].values)
+        min_diffs_perm = []
+        for edge_pairs in all_pairs:
+            min_diff = np.min(np.abs([(t_arr[perm[i]] - t_arr[perm[j]]) for (i, j) in edge_pairs]))
+            min_diffs_perm.append(min_diff)
+        means_perm.append(np.mean(min_diffs_perm))
+        medians_perm.append(np.median(min_diffs_perm))
+    return min_diffs_obs_mean, min_diffs_obs_median, means_perm, medians_perm
