@@ -187,7 +187,7 @@ def shuffle_test_nocache(events, network, t_col, node_col, n_perm):
         if n1 in node_event_ixs and n2 in node_event_ixs:
             n1_ixs = node_event_ixs[n1]
             n2_ixs = node_event_ixs[n2]
-            edge_pairs = list(product(n1_ixs, n2_ixs))
+            edge_pairs = [(i, j) for (i, j) in product(n1_ixs, n2_ixs) if i!=j]
             all_pairs.append(edge_pairs)
     min_diffs_obs = []
     for edge_pairs in all_pairs:
