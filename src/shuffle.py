@@ -193,20 +193,16 @@ def shuffle_test_nocache(events, network, t_col, node_col, n_perm):
     for edge_pairs in all_pairs:
         min_diff = np.min(np.abs([(t_arr[i] - t_arr[j]) for (i, j) in edge_pairs]))
         min_diffs_obs.append(min_diff)
-    min_diffs_obs_mean = np.mean(min_diffs_obs)
-    min_diffs_obs_median = np.median(min_diffs_obs)
-    # perm = np.arange(t_diffs.shape[0])
-    means_perm = []
-    medians_perm = []
+    min_diffs_obs = np.array(min_diffs_obs)
+    min_diffs_perm = np.empty((n_perm, len(min_diffs_obs)))
     # TODO: Fix indices
     for perm_index in range(n_perm):
         # TODO Use updated rng
         # perm = np.random.permutation(np.arange(t_diffs.shape[0]))
         perm = np.random.permutation(events_ind['index'].values)
-        min_diffs_perm = []
+        min_diffs = []
         for edge_pairs in all_pairs:
             min_diff = np.min(np.abs([(t_arr[perm[i]] - t_arr[perm[j]]) for (i, j) in edge_pairs]))
-            min_diffs_perm.append(min_diff)
-        means_perm.append(np.mean(min_diffs_perm))
-        medians_perm.append(np.median(min_diffs_perm))
-    return min_diffs_obs_mean, min_diffs_obs_median, means_perm, medians_perm
+            min_diffs.append(min_diff)
+        min_diffs_perm[perm_index, :] = min_diffs
+    return min_diffs_obs, min_diffs_perm
