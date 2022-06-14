@@ -86,4 +86,4 @@ def plot_hit_rate(cms, percentages, time, show=True, filename=None, directory='r
     plt.legend(loc='upper left', framealpha=0)
     plt.tight_layout()
     ut.enhance_plot(fig=fig, show=show, filename=filename, dir_name=directory)
-    return fig
+    return fig, ax1
