@@ -92,9 +92,9 @@ class HawkesExpKernelIdentical:
 
     def _set_ranges(self):
         # Assumes mu cannot be much larger than the mean intensity
-        self.mu_range = (1e-20, 2 * self.lambda_mean)
+        self.mu_range = (1e-10, 2 * self.lambda_mean)
         # Assumes alpha cannot be larger than 1 which would result in critical number of events
-        self.alpha_range = (1e-20, 1)
+        self.alpha_range = (1e-10, 1)
         # Assumes the contagion lifetime must be smaller than half of the training time
         # and longer than 1/3 of a time unit
         self.beta_range = (2 / self.training_time, 50)
