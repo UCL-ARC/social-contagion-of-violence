@@ -97,7 +97,7 @@ class HawkesExpKernelIdentical:
         self.alpha_range = (1e-10, 1)
         # Assumes the contagion lifetime must be smaller than half of the training time
         # and longer than 1/3 of a time unit
-        self.beta_range = (2 / self.training_time, 50)
+        self.beta_range = (2 / self.training_time, 10)
 
     def _recursive(self, timestamps, beta, ):
         r_array = np.zeros(len(timestamps))
