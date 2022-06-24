@@ -193,7 +193,6 @@ class HawkesExpKernelIdentical:
         if beta is None:
             beta = self.beta_est
         for node in self.network.nodes:
-            print('node: ', node)
             node_ts_neighbors = np.concatenate([self.timestamps[i] for i in self.network.neighbors(node)])
             # TODO Limit to multiple of lifetime?
             for i, time in enumerate(times):
